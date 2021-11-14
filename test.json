@@ -1,0 +1,42 @@
+{
+  "flow_name": "payment_flow",
+  "components": [
+    {
+      "name": "payment_gui",
+      "type": "liveview",
+      "points_to": [
+        "createPaymentIntent"
+      ]
+    },
+    {
+      "name": "createPaymentIntent",
+      "type": "command",
+      "points_to": [
+        "paymentIntentCreated"
+      ]
+    },
+    {
+      "name": "paymentIntentCreated",
+      "type": "event",
+      "points_to": [
+        "createPayment"
+      ],
+      "aggregate": "paymentAggregate "
+    },
+    {
+      "name": "createPayment",
+      "type": "command",
+      "points_to": [
+        "paymentCreated"
+      ]
+    },
+    {
+      "name": "paymentCreated",
+      "type": "event",
+      "points_to": [
+        "paymentReadModel"
+      ],
+      "aggregate": "paymentAggregate"
+    }
+  ]
+}
