@@ -8,9 +8,11 @@
 /deps/
 
 /lib/flows/
+/lib/liveviews/
 /lib/aggregates/
 /lib/commands/
 /lib/events/
+/lib/event_handlers/
 /lib/read_models/
 
 # Where 3rd-party dependencies like ExDoc output generated docs.
