@@ -102,7 +102,8 @@ defmodule CxNewWeb.CanvasLive do
         add_read_model_to_flow(socket.assigns.flow, rm_filename, dispatched_by)
     end
 
-    {:noreply, redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(module_to_string(socket.assigns.flow))))}
+    {:noreply,
+     redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(module_to_string(socket.assigns.flow))))}
   end
 
   defp module_to_string(module), do: String.split(to_string(module), "Elixir.") |> Enum.at(1) |> strip_command_event()
@@ -118,7 +119,7 @@ defmodule CxNewWeb.CanvasLive do
   end
 
   def get_flows() do
-    case File.ls("lib/flows") do
+    case File.ls("lib/cx_scaffold/flows") do
       {:error, _} ->
         []
 
@@ -149,26 +150,16 @@ defmodule CxNewWeb.CanvasLive do
 
   defp left_shift(_component, i), do: (4 + i) * @width_unit
 
-  # def recompile() do
-  #   Mix.Task.reenable("app.start")
-  #   Mix.Task.reenable("compile")
-  #   Mix.Task.reenable("compile.all")
-  #   compilers = Mix.compilers()
-  #   Enum.each(compilers, &Mix.Task.reenable("compile.#{&1}"))
-  #   Mix.Task.run("compile.all")
-
-  #   IO.puts "done recompiling"
-  # end
 
   def recompile() do
     IEx.Helpers.recompile()
   end
 
   def write_flow(flow_name, flow) do
-    File.mkdir_p("lib/flows")
+    File.mkdir_p("lib/cx_scaffold/flows")
 
     File.write(
-      "lib/flows/#{flow_name}.ex",
+      "lib/cx_scaffold/flows/#{flow_name}.ex",
       """
       defmodule Flow.#{String.capitalize(flow_name)} do
       def flow do
@@ -180,7 +171,7 @@ defmodule CxNewWeb.CanvasLive do
   end
 
   def create_flow(flowname) do
-    case File.read("lib/flows/flowname.ex") do
+    case File.read("lib/cx_scaffold/flows/flowname.ex") do
       {:ok, _} ->
         {:error, "flow exists"}
 
@@ -197,11 +188,11 @@ defmodule CxNewWeb.CanvasLive do
   end
 
   def add_liveview_to_flow(flow, liveview_name, dispatched_by \\ nil) do
-    case File.read("lib/liveviews/#{liveview_name}.ex") do
+    case File.read("lib/cx_scaffold/liveviews/#{liveview_name}.ex") do
       {:error, _} ->
-        File.mkdir_p("lib/liveviews")
+        File.mkdir_p("lib/cx_scaffold/liveviews")
 
-        File.write("lib/liveviews/#{liveview_name}.ex", """
+        File.write("lib/cx_scaffold/liveviews/#{liveview_name}.ex", """
         defmodule LiveView.#{String.capitalize(liveview_name)} do
         use Phoenix.LiveView
           def mount(_params, %{}, socket) do
@@ -236,12 +227,12 @@ defmodule CxNewWeb.CanvasLive do
   end
 
   def create_command_dispatcher() do
-    case File.read("lib/command_dispatcher.ex") do
+    case File.read("lib/cx_scaffold/command_dispatcher.ex") do
       {:ok, _} ->
         :ok
 
       __ ->
-        File.write("lib/command_dispatcher.ex", """
+        File.write("lib/cx_scaffold/command_dispatcher.ex", """
             defprotocol CommandDispatcher do
         	def dispatch(command)
         end
@@ -254,20 +245,21 @@ defmodule CxNewWeb.CanvasLive do
   end
 
   def add_read_model_to_flow(flow, rm_name, dispatched_by \\ nil) do
-    case File.read("lib/read_models/#{rm_name}.ex") do
+    case File.read("lib/cx_scaffold/read_models/#{rm_name}.ex") do
       {:ok, _} ->
         :error
 
       {:error, _} ->
-        File.mkdir_p("lib/ream_models")
+        File.mkdir_p("lib/cx_scaffold/read_models")
 
-        File.write("lib/read_models/#{rm_name}.ex", """
+        File.write("lib/cx_scaffold/read_models/#{rm_name}.ex", """
         defmodule ReadModel.#{String.capitalize(rm_name)} do
           use ReadModel
         end
         """)
     end
 
+    recompile()
     current_flows = flow.flow()
     guid = UUID.uuid1()
 
@@ -277,7 +269,7 @@ defmodule CxNewWeb.CanvasLive do
           %{
             "gui_id" => guid,
             "type" => "read_model",
-            "module" => String.to_existing_atom("Elixir.Command.#{String.capitalize()}"),
+            "module" => String.to_existing_atom("Elixir.ReadModel.#{String.capitalize(rm_name)}"),
             "dispatched_by" => dispatched_by
           }
         ]
@@ -294,14 +286,14 @@ defmodule CxNewWeb.CanvasLive do
     	end
     """
 
-    case File.read("lib/commands/#{command_name}.ex") do
+    case File.read("lib/cx_scaffold/commands/#{command_name}.ex") do
       {:ok, _} ->
         :error
 
       {:error, _} ->
-        File.mkdir_p("lib/commands")
+        File.mkdir_p("lib/cx_scaffold/commands")
 
-        File.write("lib/commands/#{command_name}.ex", """
+        File.write("lib/cx_scaffold/commands/#{command_name}.ex", """
         defmodule Command.#{String.capitalize(command_name)} do
           defstruct [:#{stream_identifier}]
         end
@@ -315,16 +307,16 @@ defmodule CxNewWeb.CanvasLive do
 
         """)
 
-        case File.read("lib/aggregates/#{aggregate}.ex") do
+        case File.read("lib/cx_scaffold/aggregates/#{aggregate}.ex") do
           {:ok, content} ->
             lines = String.split(content, "\n", trim: true)
             new_lines = List.insert_at(lines, -2, agg_function)
-            File.write("lib/aggregates/#{aggregate}.ex", Enum.join(new_lines, "\n"))
+            File.write("lib/cx_scaffold/aggregates/#{aggregate}.ex", Enum.join(new_lines, "\n"))
 
           _ ->
-            File.mkdir_p("lib/aggregates")
+            File.mkdir_p("lib/cx_scaffold/aggregates")
 
-            File.write("lib/aggregates/#{aggregate}.ex", """
+            File.write("lib/cx_scaffold/aggregates/#{aggregate}.ex", """
             defmodule Aggregate.#{String.capitalize(aggregate)} do
             def execute(%Command.#{String.capitalize(command_name)}{}, state) do
             	{%Event.#{String.capitalize(event_name)}{}, state}
@@ -334,14 +326,14 @@ defmodule CxNewWeb.CanvasLive do
         end
     end
 
-    case File.read("lib/events/#{event_name}.ex") do
+    case File.read("lib/cx_scaffold/events/#{event_name}.ex") do
       {:ok, _} ->
         :error
 
       {:error, _} ->
-        File.mkdir_p("lib/events")
+        File.mkdir_p("lib/cx_scaffold/events")
 
-        File.write("lib/events/#{event_name}.ex", """
+        File.write("lib/cx_scaffold/events/#{event_name}.ex", """
         defmodule Event.#{String.capitalize(event_name)} do
           defstruct [:#{stream_identifier}]
         end
@@ -390,9 +382,8 @@ defmodule CxNewWeb.CanvasLive do
         <%= for component <- @flow.flow() do %>
         	<%= if component["dispatched_by"] != nil  do %>
 
-
-          	<connection from={"#" <> component["dispatched_by"]} to={"#" <> component["gui_id"]}  fromY="1"  toY="0" tail="true" ></connection>
-          	<connection from={"#" <> component["dispatched_by"]} to={"#" <> component["gui_id"]}  fromY="1"  toY="0" tail="true" ></connection>
+          	<connection from={"#" <> component["dispatched_by"]} to={"#" <> component["gui_id"]}  fromY="0.5"  toY="0.5" tail="true" ></connection>
+          	<connection from={"#" <> component["dispatched_by"]} to={"#" <> component["gui_id"]}  fromY="0.5"  toY="0.5" tail="true" ></connection>
             <% end %>
           <% end %>
     		<% end %>
@@ -442,9 +433,9 @@ defmodule CxNewWeb.CanvasLive do
   def flow_page(assigns) do
     ~H"""
 
-    <%= add_liveview_modal(%{flow: @flow}) %>
-    <%= add_command_and_event_modal(%{flow: @flow}) %>
-
+    <%= add_component_modal(%{flow: @flow}, "Add Liveview", "add_liveview", fn x -> liveview_form_custom_conent(x) end ) %>
+    <%= add_component_modal(%{flow: @flow}, "Add Command &  Event", "add_command_and_event", fn x -> command_and_event_form_custom_content(x) end, "btn-info" ) %>
+    <%= add_component_modal(%{flow: @flow}, "Add Read model", "add_read_model", fn x -> read_model_custom_form_content(x) end, "btn-success" ) %>
 
     <div class="px-10 prose">
     <%= for {aggregate,i} <- Enum.with_index(@aggregates) do %>
@@ -497,64 +488,75 @@ defmodule CxNewWeb.CanvasLive do
     """
   end
 
-  def add_liveview_modal(assigns) do
+
+  def liveview_form_custom_conent(assigns) do
     ~H"""
-        <div class="px-10 pb-5 prose">
-            <label for="my-modal-2" class="btn btn-outline modal-button">Add
-            Liveview</label> <input type="checkbox" id="my-modal-2" class=
-            "modal-toggle">
-            <div class="modal">
-              <div class="modal-box">
-                <h4>Add Liveview</h4>
-                <form phx-submit="add_liveview">
                   <div class="form-control">
                     <label class="label"><span class=
                     "label-text">Filename</span></label> <input name="filename"
-                    type="text" placeholder="a_view" class=
+                    type="text" placeholder="a_view"  class=
                     "input input-bordered">
                   </div>
+    """
+
+  end
+    
+  def add_component_modal(assigns, title, submit, custom_content, button_style \\ "") do
+    ~H"""
+        <div class="px-10 pb-5 prose">
+            <label for={title} class={"btn btn-outline modal-button " <> button_style } >  <%= title %> </label> <input type="checkbox" id={title} class=
+            "modal-toggle">
+            <div class="modal">
+              <div class="modal-box">
+                <h4><%= title %> </h4>
+                <form phx-submit={submit} >
+                  <%= custom_content.(%{}) %>
                   <%= dispatched_by_select(%{flow: @flow}) %>
                   <div class="modal-action">
-                    <input for="my-modal-2" type="submit" class=
-                    "btn btn-primary" value="Create"> <label for="my-modal-2"
+                    <input for={title} type="submit" class=
+                    "btn btn-primary" value="Create"> <label for={title}
                     class="btn">Close</label>
                   </div>
                 </form>
               </div>
             </div>
             </div>
-
     """
   end
 
-
-def dispatched_by_select(assigns) do
-  ~H"""
- <div class="form-control">
-  <label class="label mt-5"><span class="label-text">Dispatched
-  by</span></label> <select name="dispatched_by" class=
-  "select select-bordered w-full max-w-xs">
-    <option selected="selected">
-      None
-    </option><%= for component <- @flow do %>
-    <option value="{component[&quot;gui_id&quot;]}">
-      <%= component["module"] %>
-    </option><%end %>
-  </select>
-  </div>
-  """
-end
-
-
-  def add_command_and_event_modal(assigns) do
+  def dispatched_by_select(assigns) do
     ~H"""
-        <div class="px-10 prose">
-            <label for="my-modal-3" class="btn btn-outline btn-primary modal-button">Add Command & Event</label> <input type="checkbox" id="my-modal-3" class=
-            "modal-toggle">
-            <div class="modal">
-              <div class="modal-box">
-                <h4>Add Command & Event</h4>
-                <form phx-submit="add_command_and_event">
+    <div class="form-control">
+    <label class="label mt-5"><span class="label-text">Dispatched
+    by</span></label> <select name="dispatched_by" class=
+    "select select-bordered w-full max-w-xs">
+      <option selected="selected">
+        None
+      </option><%= for component <- @flow do %>
+      <option value={component["gui_id"]}>
+        <%= component["module"] %>
+      </option><%end %>
+    </select>
+    </div>
+    """
+  end
+
+  def read_model_custom_form_content(assigns) do
+    ~H"""
+      <div class="form-control">
+        <label class="label"><span class="label-text">
+        Read Model filename </span></label> <input name="rm_filename"
+        type="text" placeholder="payments" class=
+        "input input-bordered">
+        </div>
+
+    """
+
+    end
+
+
+  def command_and_event_form_custom_content(assigns) do
+    ~H"""
                   <div class="form-control">
                     <label class="label"><span class=
                     "label-text">Command filename</span></label> <input name="command_filename"
@@ -578,33 +580,7 @@ end
                     type="text" value="None" placeholder="order" class=
                     "input input-bordered">
 
-
-                    <label class="label mt-5"><span class=
-                    "label-text">Dispatched by</span></label> <select name=
-                    "dispatched_by" class=
-                    "select select-bordered w-full max-w-xs">
-                      <option selected="selected">
-                        None
-                      </option>
-                      <%= for component <- @flow do %>
-                      <option value={component["gui_id"]}>
-                      	<%= component["module"] %>
-                      </option>
-                      <% end %>
-                    </select>
                   </div>
-
-
-
-                  <div class="modal-action">
-                    <input for="my-modal-3" type="submit" class=
-                    "btn btn-primary" value="Create"> <label for="my-modal-3"
-                    class="btn">Close</label>
-                  </div>
-                </form>
-              </div>
-            </div>
-            </div>
 
     """
   end

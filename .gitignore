@@ -7,13 +7,7 @@
 # The directory Mix downloads your dependencies sources to.
 /deps/
 
-/lib/flows/
-/lib/liveviews/
-/lib/aggregates/
-/lib/commands/
-/lib/events/
-/lib/event_handlers/
-/lib/read_models/
+/lib/cx_scaffold/
 
 # Where 3rd-party dependencies like ExDoc output generated docs.
 /doc/
