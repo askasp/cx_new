@@ -13,7 +13,11 @@ defmodule CxNew.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: CxNew.PubSub},
       # Start the Endpoint (http/https)
-      CxNewWeb.Endpoint
+      CxNewWeb.Endpoint,
+  		{DynamicSupervisor, strategy: :one_for_one, name: CxNew.DynamicSupervisor},
+  		{Registry, keys: :unique, name: Registry.Aggregate},
+  		CxNew.EventStoreDbClient
+
       # Start a worker by calling: CxNew.Worker.start_link(arg)
       # {CxNew.Worker, arg}
     ]

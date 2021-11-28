@@ -106,7 +106,30 @@ defmodule CxNewWeb.CanvasLive do
      redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(module_to_string(socket.assigns.flow))))}
   end
 
-  defp module_to_string(module), do: String.split(to_string(module), "Elixir.") |> Enum.at(1) |> strip_command_event()
+
+  @impl true
+  def handle_event(
+        "add_processer",
+        %{
+          "processer_filename" => processer_filename,
+          "dispatched_by" => dispatched_by
+        },
+        socket
+      ) do
+    case dispatched_by do
+      "None" ->
+        add_processer_to_flow(socket.assigns.flow, processer_filename, nil)
+
+      _ ->
+        add_processer_to_flow(socket.assigns.flow, processer_filename, dispatched_by)
+    end
+
+    {:noreply,
+     redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(module_to_string(socket.assigns.flow))))}
+  end
+
+
+  def module_to_string(module), do: String.split(to_string(module), "Elixir.") |> Enum.at(1) |> strip_command_event()
 
   defp strip_command_event(module) do
     string_list = String.split(module, ".", parts: 2)
@@ -277,12 +300,51 @@ defmodule CxNewWeb.CanvasLive do
     write_flow(flow_name_from_flow(flow), new_flow)
   end
 
+  def add_processer_to_flow(flow, processer_name, dispatched_by \\ nil) do
+    case File.read("lib/cx_scaffold/processers/#{processer_name}.ex") do
+      {:ok, _} ->
+        :error
+
+      {:error, _} ->
+        File.mkdir_p("lib/cx_scaffold/processers")
+
+        File.write("lib/cx_scaffold/processers/#{processer_name}.ex", """
+        defmodule Processer.#{String.capitalize(processer_name)} do
+          #use Processor
+        end
+        """)
+    end
+
+    recompile()
+    current_flows = flow.flow()
+    guid = "a" <> UUID.uuid1()
+
+    new_flow =
+      current_flows ++
+        [
+          %{
+            "gui_id" => guid,
+            "type" => "processer",
+            "module" => String.to_existing_atom("Elixir.Processer.#{String.capitalize(processer_name)}"),
+            "dispatched_by" => dispatched_by
+          }
+        ]
+
+    write_flow(flow_name_from_flow(flow), new_flow)
+  end
+
+
   def add_command_to_flow(flow, command_name, stream_identifier, event_name, aggregate, dispatched_by \\ nil) do
     create_command_dispatcher()
 
     agg_function = """
     	def execute(%Command.#{String.capitalize(command_name)}{}, state) do
       	{%Event.#{String.capitalize(event_name)}{}, state}
+    	end
+
+    	def apply_event(%Event.#{String.capitalize(event_name)}{}, state) do
+      	new_state = state
+      	new_state
     	end
     """
 
@@ -304,7 +366,6 @@ defmodule CxNewWeb.CanvasLive do
 
           end
         end
-
         """)
 
         case File.read("lib/cx_scaffold/aggregates/#{aggregate}.ex") do
@@ -321,6 +382,12 @@ defmodule CxNewWeb.CanvasLive do
             def execute(%Command.#{String.capitalize(command_name)}{}, state) do
             	{%Event.#{String.capitalize(event_name)}{}, state}
             end
+
+          	def apply_event(%Event.#{String.capitalize(event_name)}{}, state) do
+            	new_state = state
+            	new_state
+          	end
+
               end
             """)
         end
@@ -368,7 +435,9 @@ defmodule CxNewWeb.CanvasLive do
 
   def render(assigns) do
     ~H"""
-
+        <div class="prose md:p-8">
+        <h1 class=""> Generate Flows </h1>
+        </div>
 
     	<div class="py-40" >
     		<%= case @flow do %>
@@ -376,13 +445,10 @@ defmodule CxNewWeb.CanvasLive do
     			<%= _ -> %> <%= flow_page(%{flow: @flow.flow(), aggregates: get_aggregates(@flow), myheight: 100}) %>
     		<% end %>
 
-
-
      <%= if @flow do %>
         <%= for component <- @flow.flow() do %>
         	<%= if component["dispatched_by"] != nil  do %>
 
-          	<connection from={"#" <> component["dispatched_by"]} to={"#" <> component["gui_id"]}  fromY="0.5"  toY="0.5" tail="true" ></connection>
           	<connection from={"#" <> component["dispatched_by"]} to={"#" <> component["gui_id"]}  fromY="0.5"  toY="0.5" tail="true" ></connection>
             <% end %>
           <% end %>
@@ -394,8 +460,6 @@ defmodule CxNewWeb.CanvasLive do
   def choose_flow_page(assigns) do
     ~H"""
         <div class="mx-auto text-center">
-
-
           <%= for flow <- @flows do %>
           <div class="my-10">
             <button phx-click="set_flow" phx-value-flow={module_to_string(flow)} class=
@@ -436,6 +500,7 @@ defmodule CxNewWeb.CanvasLive do
     <%= add_component_modal(%{flow: @flow}, "Add Liveview", "add_liveview", fn x -> liveview_form_custom_conent(x) end ) %>
     <%= add_component_modal(%{flow: @flow}, "Add Command &  Event", "add_command_and_event", fn x -> command_and_event_form_custom_content(x) end, "btn-info" ) %>
     <%= add_component_modal(%{flow: @flow}, "Add Read model", "add_read_model", fn x -> read_model_custom_form_content(x) end, "btn-success" ) %>
+    <%= add_component_modal(%{flow: @flow}, "Add Processer", "add_processer", fn x -> processer_custom_form_content(x) end, "btn-secondary" ) %>
 
     <div class="px-10 prose">
     <%= for {aggregate,i} <- Enum.with_index(@aggregates) do %>
@@ -470,7 +535,6 @@ defmodule CxNewWeb.CanvasLive do
 
     <%= module_to_string(component["module"]) %>
     </div>
-
 
     <%= "read_model" -> %>
     <div id={component["gui_id"]} class="btn btn-success" style={"position: absolute; top: #{(4)*@myheight}px; left: #{left_shift(component,i)}px"} >
@@ -553,6 +617,21 @@ defmodule CxNewWeb.CanvasLive do
     """
 
     end
+
+  def processer_custom_form_content(assigns) do
+    ~H"""
+      <div class="form-control">
+        <label class="label"><span class="label-text">
+        Processer filename </span></label> <input name="processer_filename"
+        type="text" placeholder="payments" class=
+        "input input-bordered">
+        </div>
+
+    """
+
+    end
+
+
 
 
   def command_and_event_form_custom_content(assigns) do
