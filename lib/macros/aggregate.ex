@@ -6,16 +6,15 @@ defmodule Aggregate do
 
       def start_link(args) do
         [stream_id: stream_id, name: name] = args
-        GenServer.start_link(__MODULE__, [stream_id], name: name)
+        GenServer.start_link(__MODULE__, [CxNewWeb.CanvasLive.module_to_string(__MODULE__) <> ":" <> stream_id], name: name)
       end
 
-      def dispatch(command, no_module_stream_id) do
-        stream_id = "#{to_string(__MODULE)}:#{no_module_stream_id}"
-        {:ok, pid} = find_or_start_aggregate_agent(stream_id)
+      def execute(command) do
+        {:ok, pid} = find_or_start_aggregate_agent(command.stream_id)
         GenServer.call(pid, {:execute, command})
       end
 
-      def init([stream_id, apply_event_func]) do
+      def init([stream_id]) do
         GenServer.cast(self(), :finish_init)
         {:ok, {stream_id, nil, 0}}
       end
@@ -23,7 +22,7 @@ defmodule Aggregate do
       def handle_cast(:finish_init, {stream_id, nil, 0}) do
         events = []
         state = Enum.reduce(events, nil, fn event, state -> apply_event(state, event) end)
-        {:noreply, {stream_id, apply_event_func, state, length(events)}}
+        {:noreply, {stream_id, state, length(events)}}
       end
 
       def handle_call(
@@ -32,7 +31,9 @@ defmodule Aggregate do
             {stream_id, state, event_nr}
           ) do
         with {:ok, event} <- execute(command, state),
-             spear_event <- Spear.Event.new(CxNewWeb.CanvasLive.module_to_string(event), Map.from_struct(event)),
+             _ <- IO.inspect(event),
+             spear_event <-
+               Spear.Event.new(CxNewWeb.CanvasLive.module_to_string(event.__struct__), Jason.encode!(event)),
              :ok <- Spear.append([spear_event], CxNew.EventStoreDbClient, stream_id) do
           new_state = apply_event(state, event)
           {:reply, :ok, {stream_id, new_state, event_nr + 1}}
@@ -48,6 +49,7 @@ defmodule Aggregate do
         |> case do
           [{pid, _}] ->
             {:ok, pid}
+
           [] ->
             spec = {__MODULE__, stream_id: stream_id, name: {:via, Registry, {AggregateRegistry, stream_id}}}
             DynamicSupervisor.start_child(AggregateSupervisor, spec)

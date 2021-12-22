@@ -12,11 +12,14 @@ defmodule CxNew.Application do
       CxNewWeb.Telemetry,
       # Start the PubSub system
       {Phoenix.PubSub, name: CxNew.PubSub},
+      CxNew.EventStoreDbClient,
       # Start the Endpoint (http/https)
       CxNewWeb.Endpoint,
-  		{DynamicSupervisor, strategy: :one_for_one, name: CxNew.DynamicSupervisor},
-  		{Registry, keys: :unique, name: Registry.Aggregate},
-  		CxNew.EventStoreDbClient
+      {DynamicSupervisor, strategy: :one_for_one, name: AggregateSupervisor},
+      {Registry, keys: :unique, name: AggregateRegistry},
+      ReadModel.Counterdos
+
+      
 
       # Start a worker by calling: CxNew.Worker.start_link(arg)
       # {CxNew.Worker, arg}

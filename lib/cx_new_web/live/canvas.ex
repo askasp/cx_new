@@ -15,6 +15,7 @@ defmodule CxNewWeb.CanvasLive do
        flows: get_flows()
      )}
   end
+  def app(), do: Application.get_env(:cx_new, :app)
 
   def handle_params(%{"flow" => flow_filename}, _uri, socket) do
     IO.inspect(flow_filename)
@@ -61,20 +62,18 @@ defmodule CxNewWeb.CanvasLive do
           "command_filename" => command_filename,
           "event_filename" => event_filename,
           "aggregate_filename" => aggregate_filename,
-          "stream_id" => stream_id,
           "dispatched_by" => dispatched_by
         },
         socket
       ) do
     case dispatched_by do
       "None" ->
-        add_command_to_flow(socket.assigns.flow, command_filename, stream_id, event_filename, aggregate_filename, nil)
+        add_command_to_flow(socket.assigns.flow, command_filename, event_filename, aggregate_filename, nil)
 
       _ ->
         add_command_to_flow(
           socket.assigns.flow,
           command_filename,
-          stream_id,
           event_filename,
           aggregate_filename,
           dispatched_by
@@ -106,7 +105,6 @@ defmodule CxNewWeb.CanvasLive do
      redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(module_to_string(socket.assigns.flow))))}
   end
 
-
   @impl true
   def handle_event(
         "add_processer",
@@ -128,13 +126,12 @@ defmodule CxNewWeb.CanvasLive do
      redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(module_to_string(socket.assigns.flow))))}
   end
 
-
-  def module_to_string(module), do: String.split(to_string(module), "Elixir.") |> Enum.at(1) |> strip_command_event()
+  def strip_elixir_from_module(module), do: String.split(to_string(module), "Elixir.") |> Enum.at(1)
+  def module_to_string(module), do: strip_elixir_from_module(module)  |> strip_command_event()
 
   defp strip_command_event(module) do
     string_list = String.split(module, ".", parts: 2)
-
-    Enum.member?(["Command", "Event", "ReadModel", "EventHandler", "Flow"], Enum.at(string_list, 0))
+    Enum.member?(["Aggregate","Command", "Event", "ReadModel", "EventHandler", "Flow"], Enum.at(string_list, 0))
     |> case do
       true -> Enum.at(string_list, 1)
       false -> module
@@ -172,7 +169,6 @@ defmodule CxNewWeb.CanvasLive do
   end
 
   defp left_shift(_component, i), do: (4 + i) * @width_unit
-
 
   def recompile() do
     IEx.Helpers.recompile()
@@ -225,7 +221,6 @@ defmodule CxNewWeb.CanvasLive do
           def render(assigns) do
           end
         end
-
         """)
 
       _ ->
@@ -234,7 +229,6 @@ defmodule CxNewWeb.CanvasLive do
 
     current_flows = flow.flow()
     recompile()
-
     new_flow =
       current_flows ++
         [
@@ -268,19 +262,67 @@ defmodule CxNewWeb.CanvasLive do
   end
 
   def add_read_model_to_flow(flow, rm_name, dispatched_by \\ nil) do
+    handler =  case dispatched_by do
+      nil -> ""
+      gui_id -> [component] = Enum.filter(flow.flow(), fn component -> component["gui_id"] == gui_id end)
+      					component["module"]
+      					"""
+      					 def handle_event({%#{strip_elixir_from_module(component["module"])}{stream_id: stream_id} = event, metadata}) do
+        					 # get state
+        					 # |> update state
+        					 # |>persist state
+        				 end
+        			  """
+    end
+
     case File.read("lib/cx_scaffold/read_models/#{rm_name}.ex") do
-      {:ok, _} ->
-        :error
+      {:ok, content} ->
+        lines = String.split(content, "\n", trim: true)
+        new_lines = List.insert_at(lines, -5, handler)
+        File.write("lib/cx_scaffold/read_models/#{rm_name}.ex", Enum.join(new_lines, "\n"))
 
       {:error, _} ->
         File.mkdir_p("lib/cx_scaffold/read_models")
-
         File.write("lib/cx_scaffold/read_models/#{rm_name}.ex", """
         defmodule ReadModel.#{String.capitalize(rm_name)} do
           use ReadModel
+          #{handler}
+
+
+					# catch all
+          def handle_event(_), do: :ok
         end
         """)
     end
+
+    # # add to read_model_supervisor
+    # case File.read("lib/cx_scaffold/read_model_supervisor.ex") do
+    #   {:ok, content} ->
+
+
+    case File.read("lib/cx_scaffold/read_models/#{rm_name}.ex") do
+      {:ok, content} ->
+        lines = String.split(content, "\n", trim: true)
+        new_lines = List.insert_at(lines, -5, handler)
+        File.write("lib/cx_scaffold/read_models/#{rm_name}.ex", Enum.join(new_lines, "\n"))
+
+      {:error, _} ->
+        File.mkdir_p("lib/cx_scaffold/read_models")
+        File.write("lib/cx_scaffold/read_models/#{rm_name}.ex", """
+        defmodule ReadModel.#{String.capitalize(rm_name)} do
+          use ReadModel
+          #{handler}
+
+
+					# catch all
+          def handle_event(_), do: :ok
+        end
+        """)
+    end
+
+
+
+
 
     recompile()
     current_flows = flow.flow()
@@ -333,16 +375,15 @@ defmodule CxNewWeb.CanvasLive do
     write_flow(flow_name_from_flow(flow), new_flow)
   end
 
-
-  def add_command_to_flow(flow, command_name, stream_identifier, event_name, aggregate, dispatched_by \\ nil) do
+  def add_command_to_flow(flow, command_name, event_name, aggregate, dispatched_by \\ nil) do
     create_command_dispatcher()
 
     agg_function = """
     	def execute(%Command.#{String.capitalize(command_name)}{}, state) do
-      	{%Event.#{String.capitalize(event_name)}{}, state}
+      	{:ok, %Event.#{String.capitalize(event_name)}{}}
     	end
 
-    	def apply_event(%Event.#{String.capitalize(event_name)}{}, state) do
+    	def apply_event(state,%Event.#{String.capitalize(event_name)}{}) do
       	new_state = state
       	new_state
     	end
@@ -357,13 +398,12 @@ defmodule CxNewWeb.CanvasLive do
 
         File.write("lib/cx_scaffold/commands/#{command_name}.ex", """
         defmodule Command.#{String.capitalize(command_name)} do
-          defstruct [:#{stream_identifier}]
+          defstruct [:stream_id]
         end
 
         defimpl CommandDispatcher, for: Command.#{String.capitalize(command_name)} do
           def dispatch(command) do
-            Aggregate.#{String.capitalize(aggregate)}.dispatch(command, :#{stream_identifier})
-
+            Aggregate.#{String.capitalize(aggregate)}.execute(command)
           end
         end
         """)
@@ -379,16 +419,16 @@ defmodule CxNewWeb.CanvasLive do
 
             File.write("lib/cx_scaffold/aggregates/#{aggregate}.ex", """
             defmodule Aggregate.#{String.capitalize(aggregate)} do
-            def execute(%Command.#{String.capitalize(command_name)}{}, state) do
-            	{%Event.#{String.capitalize(event_name)}{}, state}
-            end
-
-          	def apply_event(%Event.#{String.capitalize(event_name)}{}, state) do
-            	new_state = state
-            	new_state
-          	end
-
+              use Aggregate
+              def execute(%Command.#{String.capitalize(command_name)}{stream_id: stream_id} = cmd, state) do
+              	{:ok, %Event.#{String.capitalize(event_name)}{stream_id: stream_id}}
               end
+
+            	def apply_event(state,%Event.#{String.capitalize(event_name)}{}) do
+              	new_state = state
+              	new_state
+            	end
+            end
             """)
         end
     end
@@ -402,7 +442,8 @@ defmodule CxNewWeb.CanvasLive do
 
         File.write("lib/cx_scaffold/events/#{event_name}.ex", """
         defmodule Event.#{String.capitalize(event_name)} do
-          defstruct [:#{stream_identifier}]
+          @derive Jason.Encoder
+          defstruct [:stream_id]
         end
         """)
     end
@@ -552,7 +593,6 @@ defmodule CxNewWeb.CanvasLive do
     """
   end
 
-
   def liveview_form_custom_conent(assigns) do
     ~H"""
                   <div class="form-control">
@@ -562,9 +602,8 @@ defmodule CxNewWeb.CanvasLive do
                     "input input-bordered">
                   </div>
     """
-
   end
-    
+
   def add_component_modal(assigns, title, submit, custom_content, button_style \\ "") do
     ~H"""
         <div class="px-10 pb-5 prose">
@@ -615,8 +654,7 @@ defmodule CxNewWeb.CanvasLive do
         </div>
 
     """
-
-    end
+  end
 
   def processer_custom_form_content(assigns) do
     ~H"""
@@ -628,11 +666,7 @@ defmodule CxNewWeb.CanvasLive do
         </div>
 
     """
-
-    end
-
-
-
+  end
 
   def command_and_event_form_custom_content(assigns) do
     ~H"""
@@ -651,12 +685,6 @@ defmodule CxNewWeb.CanvasLive do
                     <label class="label"><span class=
                     "label-text"> aggregate filename </span></label> <input name="aggregate_filename"
                     type="text"  placeholder="paymentaggregate" class=
-                    "input input-bordered">
-
-
-                    <label class="label"><span class=
-                    "label-text">Stream Id</span></label> <input name="stream_id"
-                    type="text" value="None" placeholder="order" class=
                     "input input-bordered">
 
                   </div>

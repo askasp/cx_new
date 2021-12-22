@@ -44,10 +44,11 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-
-config :cx_new, CxNew.EventStoreDbClient,
-  connection_string: "esdb://localhost:2113"
+config :cx_new, CxNew.EventStoreDbClient, connection_string: "esdb://localhost:2113"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
+
+config :cx_new, :app, CxNew
+
 import_config "#{config_env()}.exs"
