@@ -6,7 +6,7 @@ defmodule Aggregate do
 
       def start_link(args) do
         [stream_id: stream_id, name: name] = args
-        GenServer.start_link(__MODULE__, [CxNewWeb.CanvasLive.module_to_string(__MODULE__) <> ":" <> stream_id], name: name)
+        GenServer.start_link(__MODULE__, [CxNew.Helpers.module_to_string(__MODULE__) <> ":" <> stream_id], name: name)
       end
 
       def execute(command) do
@@ -33,7 +33,7 @@ defmodule Aggregate do
         with {:ok, event} <- execute(command, state),
              _ <- IO.inspect(event),
              spear_event <-
-               Spear.Event.new(CxNewWeb.CanvasLive.module_to_string(event.__struct__), Jason.encode!(event)),
+               Spear.Event.new(CxNew.Helpers.module_to_string(event.__struct__), Jason.encode!(event)),
              :ok <- Spear.append([spear_event], CxNew.EventStoreDbClient, stream_id) do
           new_state = apply_event(state, event)
           {:reply, :ok, {stream_id, new_state, event_nr + 1}}

@@ -17,9 +17,6 @@ defmodule CxNew.Application do
       CxNewWeb.Endpoint,
       {DynamicSupervisor, strategy: :one_for_one, name: AggregateSupervisor},
       {Registry, keys: :unique, name: AggregateRegistry},
-      ReadModel.Counterdos
-
-      
 
       # Start a worker by calling: CxNew.Worker.start_link(arg)
       # {CxNew.Worker, arg}

@@ -1,6 +1,8 @@
 defmodule CxNewWeb.CanvasLive do
+  alias CxNew.FileInterface
+  alias CxNew.Helpers
   @height_unit 100
-  @width_unit 100
+  @width_unit 120
   # If you generated an app with mix phx.new --live,
   # the line below would be: use MyAppWeb, :live_view
   use CxNewWeb, :live_view
@@ -12,14 +14,13 @@ defmodule CxNewWeb.CanvasLive do
        flow: nil,
        flow_name_suggestion: "myflow",
        show_add_flow_modal: false,
-       flows: get_flows()
+       flows: FileInterface.get_flows()
      )}
   end
-  def app(), do: Application.get_env(:cx_new, :app)
 
   def handle_params(%{"flow" => flow_filename}, _uri, socket) do
     IO.inspect(flow_filename)
-    flow_module = String.to_existing_atom("Elixir.Flow.#{String.capitalize(flow_filename)}")
+    flow_module = Helpers.string_to_existing_module("Flow", flow_filename)
     IO.inspect(flow_module)
     {:noreply, assign(socket, flow: flow_module)}
   end
@@ -40,19 +41,16 @@ defmodule CxNewWeb.CanvasLive do
   end
 
   def handle_event("create_flow", %{"filename" => filename}, socket) do
-    new_flow = create_flow(filename)
-    {:noreply, assign(socket, flows: get_flows(), show_add_flow_modal: false)}
+    new_flow = FileInterface.create_flow(filename)
+    {:noreply, assign(socket, flows: FileInterface.get_flows(), show_add_flow_modal: false)}
   end
 
   @impl true
   def handle_event("add_liveview", %{"filename" => filename, "dispatched_by" => dispatched_by}, socket) do
-    case dispatched_by do
-      "None" -> add_liveview_to_flow(socket.assigns.flow, filename, nil)
-      _ -> add_liveview_to_flow(socket.assigns.flow, filename, dispatched_by)
-    end
+    FileInterface.add_liveview_to_flow(socket.assigns.flow, filename, Helpers.none_to_nil(dispatched_by))
 
     {:noreply,
-     redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(module_to_string(socket.assigns.flow))))}
+     redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(Helpers.module_to_string(socket.assigns.flow))))}
   end
 
   @impl true
@@ -66,22 +64,16 @@ defmodule CxNewWeb.CanvasLive do
         },
         socket
       ) do
-    case dispatched_by do
-      "None" ->
-        add_command_to_flow(socket.assigns.flow, command_filename, event_filename, aggregate_filename, nil)
-
-      _ ->
-        add_command_to_flow(
-          socket.assigns.flow,
-          command_filename,
-          event_filename,
-          aggregate_filename,
-          dispatched_by
-        )
-    end
+    FileInterface.add_command_to_flow(
+      socket.assigns.flow,
+      command_filename,
+      event_filename,
+      aggregate_filename,
+      Helpers.none_to_nil(dispatched_by)
+    )
 
     {:noreply,
-     redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(module_to_string(socket.assigns.flow))))}
+     redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(Helpers.module_to_string(socket.assigns.flow))))}
   end
 
   @impl true
@@ -93,16 +85,9 @@ defmodule CxNewWeb.CanvasLive do
         },
         socket
       ) do
-    case dispatched_by do
-      "None" ->
-        add_read_model_to_flow(socket.assigns.flow, rm_filename, nil)
-
-      _ ->
-        add_read_model_to_flow(socket.assigns.flow, rm_filename, dispatched_by)
-    end
-
+        FileInterface.add_read_model_to_flow(socket.assigns.flow, rm_filename, Helpers.none_to_nil(dispatched_by))
     {:noreply,
-     redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(module_to_string(socket.assigns.flow))))}
+     redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(Helpers.module_to_string(socket.assigns.flow))))}
   end
 
   @impl true
@@ -114,41 +99,9 @@ defmodule CxNewWeb.CanvasLive do
         },
         socket
       ) do
-    case dispatched_by do
-      "None" ->
-        add_processer_to_flow(socket.assigns.flow, processer_filename, nil)
-
-      _ ->
-        add_processer_to_flow(socket.assigns.flow, processer_filename, dispatched_by)
-    end
-
+        FileInterface.add_processer_to_flow(socket.assigns.flow, processer_filename, Helpers.none_to_nil(dispatched_by))
     {:noreply,
-     redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(module_to_string(socket.assigns.flow))))}
-  end
-
-  def strip_elixir_from_module(module), do: String.split(to_string(module), "Elixir.") |> Enum.at(1)
-  def module_to_string(module), do: strip_elixir_from_module(module)  |> strip_command_event()
-
-  defp strip_command_event(module) do
-    string_list = String.split(module, ".", parts: 2)
-    Enum.member?(["Aggregate","Command", "Event", "ReadModel", "EventHandler", "Flow"], Enum.at(string_list, 0))
-    |> case do
-      true -> Enum.at(string_list, 1)
-      false -> module
-    end
-  end
-
-  def get_flows() do
-    case File.ls("lib/cx_scaffold/flows") do
-      {:error, _} ->
-        []
-
-      {:ok, files} ->
-        Enum.map(files, fn file ->
-          filename = String.split(file, ".e") |> Enum.at(0)
-          String.to_existing_atom("Elixir.Flow.#{String.capitalize(filename)}")
-        end)
-    end
+     redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(Helpers.module_to_string(socket.assigns.flow))))}
   end
 
   def get_aggregates(flow) do
@@ -161,9 +114,6 @@ defmodule CxNewWeb.CanvasLive do
   defp aggregate_height(i), do: (6 + 1.5 * i) * @height_unit
 
   defp event_height(event_component, aggregates) do
-    IO.inspect(event_component)
-    IO.inspect(aggregates)
-
     Enum.find_index(aggregates, fn x -> x == event_component["aggregate"] end)
     |> aggregate_height
   end
@@ -174,305 +124,6 @@ defmodule CxNewWeb.CanvasLive do
     IEx.Helpers.recompile()
   end
 
-  def write_flow(flow_name, flow) do
-    File.mkdir_p("lib/cx_scaffold/flows")
-
-    File.write(
-      "lib/cx_scaffold/flows/#{flow_name}.ex",
-      """
-      defmodule Flow.#{String.capitalize(flow_name)} do
-      def flow do
-        #{inspect(flow)}
-       end
-      end
-      """
-    )
-  end
-
-  def create_flow(flowname) do
-    case File.read("lib/cx_scaffold/flows/flowname.ex") do
-      {:ok, _} ->
-        {:error, "flow exists"}
-
-      _ ->
-        write_flow(flowname, [])
-    end
-
-    recompile()
-    String.to_existing_atom("Elixir.Flow.#{String.capitalize(flowname)}")
-  end
-
-  defp flow_name_from_flow(flow) do
-    module_to_string(flow) |> String.downcase()
-  end
-
-  def add_liveview_to_flow(flow, liveview_name, dispatched_by \\ nil) do
-    case File.read("lib/cx_scaffold/liveviews/#{liveview_name}.ex") do
-      {:error, _} ->
-        File.mkdir_p("lib/cx_scaffold/liveviews")
-
-        File.write("lib/cx_scaffold/liveviews/#{liveview_name}.ex", """
-        defmodule LiveView.#{String.capitalize(liveview_name)} do
-        use Phoenix.LiveView
-          def mount(_params, %{}, socket) do
-            {:ok, socket}
-          end
-
-          def render(assigns) do
-          end
-        end
-        """)
-
-      _ ->
-        :ok
-    end
-
-    current_flows = flow.flow()
-    recompile()
-    new_flow =
-      current_flows ++
-        [
-          %{
-            "gui_id" => UUID.uuid1(),
-            "type" => "liveview",
-            "module" => String.to_existing_atom("Elixir.LiveView.#{String.capitalize(liveview_name)}"),
-            "dispatched_by" => dispatched_by
-          }
-        ]
-
-    write_flow(flow_name_from_flow(flow), new_flow)
-  end
-
-  def create_command_dispatcher() do
-    case File.read("lib/cx_scaffold/command_dispatcher.ex") do
-      {:ok, _} ->
-        :ok
-
-      __ ->
-        File.write("lib/cx_scaffold/command_dispatcher.ex", """
-            defprotocol CommandDispatcher do
-        	def dispatch(command)
-        end
-        """)
-
-        :ok
-    end
-
-    recompile()
-  end
-
-  def add_read_model_to_flow(flow, rm_name, dispatched_by \\ nil) do
-    handler =  case dispatched_by do
-      nil -> ""
-      gui_id -> [component] = Enum.filter(flow.flow(), fn component -> component["gui_id"] == gui_id end)
-      					component["module"]
-      					"""
-      					 def handle_event({%#{strip_elixir_from_module(component["module"])}{stream_id: stream_id} = event, metadata}) do
-        					 # get state
-        					 # |> update state
-        					 # |>persist state
-        				 end
-        			  """
-    end
-
-    case File.read("lib/cx_scaffold/read_models/#{rm_name}.ex") do
-      {:ok, content} ->
-        lines = String.split(content, "\n", trim: true)
-        new_lines = List.insert_at(lines, -5, handler)
-        File.write("lib/cx_scaffold/read_models/#{rm_name}.ex", Enum.join(new_lines, "\n"))
-
-      {:error, _} ->
-        File.mkdir_p("lib/cx_scaffold/read_models")
-        File.write("lib/cx_scaffold/read_models/#{rm_name}.ex", """
-        defmodule ReadModel.#{String.capitalize(rm_name)} do
-          use ReadModel
-          #{handler}
-
-
-					# catch all
-          def handle_event(_), do: :ok
-        end
-        """)
-    end
-
-    # # add to read_model_supervisor
-    # case File.read("lib/cx_scaffold/read_model_supervisor.ex") do
-    #   {:ok, content} ->
-
-
-    case File.read("lib/cx_scaffold/read_models/#{rm_name}.ex") do
-      {:ok, content} ->
-        lines = String.split(content, "\n", trim: true)
-        new_lines = List.insert_at(lines, -5, handler)
-        File.write("lib/cx_scaffold/read_models/#{rm_name}.ex", Enum.join(new_lines, "\n"))
-
-      {:error, _} ->
-        File.mkdir_p("lib/cx_scaffold/read_models")
-        File.write("lib/cx_scaffold/read_models/#{rm_name}.ex", """
-        defmodule ReadModel.#{String.capitalize(rm_name)} do
-          use ReadModel
-          #{handler}
-
-
-					# catch all
-          def handle_event(_), do: :ok
-        end
-        """)
-    end
-
-
-
-
-
-    recompile()
-    current_flows = flow.flow()
-    guid = UUID.uuid1()
-
-    new_flow =
-      current_flows ++
-        [
-          %{
-            "gui_id" => guid,
-            "type" => "read_model",
-            "module" => String.to_existing_atom("Elixir.ReadModel.#{String.capitalize(rm_name)}"),
-            "dispatched_by" => dispatched_by
-          }
-        ]
-
-    write_flow(flow_name_from_flow(flow), new_flow)
-  end
-
-  def add_processer_to_flow(flow, processer_name, dispatched_by \\ nil) do
-    case File.read("lib/cx_scaffold/processers/#{processer_name}.ex") do
-      {:ok, _} ->
-        :error
-
-      {:error, _} ->
-        File.mkdir_p("lib/cx_scaffold/processers")
-
-        File.write("lib/cx_scaffold/processers/#{processer_name}.ex", """
-        defmodule Processer.#{String.capitalize(processer_name)} do
-          #use Processor
-        end
-        """)
-    end
-
-    recompile()
-    current_flows = flow.flow()
-    guid = "a" <> UUID.uuid1()
-
-    new_flow =
-      current_flows ++
-        [
-          %{
-            "gui_id" => guid,
-            "type" => "processer",
-            "module" => String.to_existing_atom("Elixir.Processer.#{String.capitalize(processer_name)}"),
-            "dispatched_by" => dispatched_by
-          }
-        ]
-
-    write_flow(flow_name_from_flow(flow), new_flow)
-  end
-
-  def add_command_to_flow(flow, command_name, event_name, aggregate, dispatched_by \\ nil) do
-    create_command_dispatcher()
-
-    agg_function = """
-    	def execute(%Command.#{String.capitalize(command_name)}{}, state) do
-      	{:ok, %Event.#{String.capitalize(event_name)}{}}
-    	end
-
-    	def apply_event(state,%Event.#{String.capitalize(event_name)}{}) do
-      	new_state = state
-      	new_state
-    	end
-    """
-
-    case File.read("lib/cx_scaffold/commands/#{command_name}.ex") do
-      {:ok, _} ->
-        :error
-
-      {:error, _} ->
-        File.mkdir_p("lib/cx_scaffold/commands")
-
-        File.write("lib/cx_scaffold/commands/#{command_name}.ex", """
-        defmodule Command.#{String.capitalize(command_name)} do
-          defstruct [:stream_id]
-        end
-
-        defimpl CommandDispatcher, for: Command.#{String.capitalize(command_name)} do
-          def dispatch(command) do
-            Aggregate.#{String.capitalize(aggregate)}.execute(command)
-          end
-        end
-        """)
-
-        case File.read("lib/cx_scaffold/aggregates/#{aggregate}.ex") do
-          {:ok, content} ->
-            lines = String.split(content, "\n", trim: true)
-            new_lines = List.insert_at(lines, -2, agg_function)
-            File.write("lib/cx_scaffold/aggregates/#{aggregate}.ex", Enum.join(new_lines, "\n"))
-
-          _ ->
-            File.mkdir_p("lib/cx_scaffold/aggregates")
-
-            File.write("lib/cx_scaffold/aggregates/#{aggregate}.ex", """
-            defmodule Aggregate.#{String.capitalize(aggregate)} do
-              use Aggregate
-              def execute(%Command.#{String.capitalize(command_name)}{stream_id: stream_id} = cmd, state) do
-              	{:ok, %Event.#{String.capitalize(event_name)}{stream_id: stream_id}}
-              end
-
-            	def apply_event(state,%Event.#{String.capitalize(event_name)}{}) do
-              	new_state = state
-              	new_state
-            	end
-            end
-            """)
-        end
-    end
-
-    case File.read("lib/cx_scaffold/events/#{event_name}.ex") do
-      {:ok, _} ->
-        :error
-
-      {:error, _} ->
-        File.mkdir_p("lib/cx_scaffold/events")
-
-        File.write("lib/cx_scaffold/events/#{event_name}.ex", """
-        defmodule Event.#{String.capitalize(event_name)} do
-          @derive Jason.Encoder
-          defstruct [:stream_id]
-        end
-        """)
-    end
-
-    recompile()
-    command_gui_id = UUID.uuid1()
-    current_flows = flow.flow()
-
-    new_flow =
-      current_flows ++
-        [
-          %{
-            "gui_id" => command_gui_id,
-            "type" => "command",
-            "module" => String.to_existing_atom("Elixir.Command.#{String.capitalize(command_name)}"),
-            "dispatched_by" => dispatched_by
-          },
-          %{
-            "gui_id" => UUID.uuid1(),
-            "type" => "event",
-            "module" => String.to_existing_atom("Elixir.Event.#{String.capitalize(event_name)}"),
-            "dispatched_by" => command_gui_id,
-            "aggregate" => String.to_existing_atom("Elixir.Aggregate.#{String.capitalize(aggregate)}")
-          }
-        ]
-
-    write_flow(flow_name_from_flow(flow), new_flow)
-    recompile()
-  end
 
   def render(assigns) do
     ~H"""
@@ -503,8 +154,8 @@ defmodule CxNewWeb.CanvasLive do
         <div class="mx-auto text-center">
           <%= for flow <- @flows do %>
           <div class="my-10">
-            <button phx-click="set_flow" phx-value-flow={module_to_string(flow)} class=
-            "btn btn-info"><%= module_to_string(flow) %></button>
+            <button phx-click="set_flow" phx-value-flow={Helpers.module_to_string(flow)} class=
+            "btn btn-info"><%= Helpers.module_to_string(flow) %></button>
           </div><%end %>
           <div class="my-20">
             <button phx-click="toggle_add_flow_modal" class="btn btn-secondary modal-button" > Create New Flow </button>
@@ -546,7 +197,7 @@ defmodule CxNewWeb.CanvasLive do
     <div class="px-10 prose">
     <%= for {aggregate,i} <- Enum.with_index(@aggregates) do %>
     <div style={"position: absolute; top: #{aggregate_height(i)}px"} >
-    <h3> <%= module_to_string(aggregate) %> </h3>
+    <h3> <%= Helpers.module_to_string(aggregate) %> </h3>
     <div class="divider w-screen"></div>
     </div>
     <% end %>
@@ -556,30 +207,30 @@ defmodule CxNewWeb.CanvasLive do
     <%=  case component["type"] do %>
 
     <%= "liveview" -> %>
-    	<div id={component["gui_id"]}  class="bg-gray-500" style={"width:200px; height:200px; position: absolute; top: #{(1)*@myheight}px; left: #{left_shift(component,i)}px"} >
-    		<%= component["module"].render(%{}) %>
+    	<div id={component["gui_id"]}  class="bg-white border-4 text-center" style={"width:200px; height:200px; position: absolute; top: #{(1)*@myheight}px; left: #{left_shift(component,i)}px"} >
+    	<h3 class="my-auto"> <%= component["module"] |> to_string() |> String.split(".") |> Enum.at(-1) %> </h3>
 
     	</div>
     <%= "command" -> %>
     <div class="btn btn-info" id={component["gui_id"]} style={"position: absolute; top: #{(4)*@myheight}px; left: #{left_shift(component,i)}px"} >
-    <%= module_to_string(component["module"]) %>
+    <%= Helpers.module_to_string(component["module"]) %>
     </div>
 
     <%= "event" -> %>
     <div class="btn btn-warning"  id={component["gui_id"]}   style={"position: absolute; top: #{event_height(component, @aggregates)}px; left: #{left_shift(component,i)}px"} >
-    <%= module_to_string(component["module"]) %>
+    <%= Helpers.module_to_string(component["module"]) %>
     </div>
 
     <%= "processer" -> %>
     <div class="" id={component["gui_id"]}    style={"position: absolute; top: #{(1)*@myheight}px; left: #{left_shift(component,i)}px"} >
     <img class="mx-auto" width="60px" src={Routes.static_path(CxNewWeb.Endpoint, "/images/gear.png")} />
 
-    <%= module_to_string(component["module"]) %>
+    <%= Helpers.module_to_string(component["module"]) %>
     </div>
 
     <%= "read_model" -> %>
     <div id={component["gui_id"]} class="btn btn-success" style={"position: absolute; top: #{(4)*@myheight}px; left: #{left_shift(component,i)}px"} >
-    <%= module_to_string(component["module"]) %>
+    <%= Helpers.module_to_string(component["module"]) %>
     </div>
 
     <%= _ -> %> <div class="btn btn-info" style={"position: absolute; top: #{(5)*@myheight}px; left: (i + 2)*@myheightpx"} > hei </div>

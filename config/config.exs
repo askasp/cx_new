@@ -50,5 +50,6 @@ config :cx_new, CxNew.EventStoreDbClient, connection_string: "esdb://localhost:2
 # of this file so it overrides the configuration defined above.
 
 config :cx_new, :app, CxNew
+config :cx_new, :erlang_app, :cx_new
 
 import_config "#{config_env()}.exs"

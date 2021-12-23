@@ -1,21 +1,22 @@
 defmodule CxNewWeb.AdminLive do
   use CxNewWeb, :live_view
 
-
   def mount(_params, _, socket) do
     IEx.Helpers.recompile()
 
     streams = get_streams()
 
-    {:ok, list} = :application.get_key(:cx_new, :modules)
+		{:ok, list}  = :application.get_key(CxNew.Helpers.erlang_app(), :modules)
+
     commands =
       list
-      |> Enum.filter(&(&1 |> Module.split() |> Enum.take(1) == ~w|Command|))
+      |> Enum.filter(&(&1 |> Module.split() |> Enum.take(2) == [CxNew.Helpers.app(), "Command"]))
+
+
 
     read_models =
       list
-      |> Enum.filter(&(&1 |> Module.split() |> Enum.take(1) == ~w|ReadModel|))
-      |> tail
+      |> Enum.filter(&(&1 |> Module.split() |> Enum.take(2) == [CxNew.Helpers.app(), "ReadModel"]))
 
     {:ok,
      assign(socket, command: nil, streams: streams, checked: nil, events: [], commands: commands, modal_open: false, read_models: read_models, read_model: nil, read_model_data: nil)}
@@ -23,8 +24,10 @@ defmodule CxNewWeb.AdminLive do
 
 
   def handle_event("show_rm_data", %{"rm_id" => id, "read_model" => read_model}, socket) do
-    read_model= String.to_existing_atom("Elixir.ReadModel.#{String.capitalize(read_model)}")
+    read_model  = CxNew.Helpers.string_to_existing_module("ReadModel",read_model)
     data = read_model.get(id)
+    IO.puts "got data"
+    IO.inspect data
     case socket.assigns.read_model do
       x when x == read_model ->
         {:noreply, assign(socket, read_model: nil)}
@@ -92,7 +95,7 @@ defmodule CxNewWeb.AdminLive do
     		<div class="grid grid-cols-4 gap-4">
           <%= for command <- @commands do %>
             <ul>
-              <button class="btn btn-md btn-primary" phx-click="toggle_command_modal" phx-value-command={to_string(command)} > <%= to_string(command) %> </button>
+              <button class="btn btn-md btn-primary" phx-click="toggle_command_modal" phx-value-command={to_string(command)} > <%= CxNew.Helpers.module_to_string(command) %> </button>
             </ul>
           <% end %>
         </div>
@@ -102,13 +105,13 @@ defmodule CxNewWeb.AdminLive do
       	<%= for read_model <- @read_models do %>
         	<div class=" w-full pb-2 border rounded-box border-base-300 collapse-arrow">
             <div class=" text-left collapse-title text-xl font-medium">
-      				<%= CxNewWeb.CanvasLive.module_to_string(read_model) %>
+      				<%= CxNew.Helpers.module_to_string(read_model) %>
             </div>
             <form phx-submit="show_rm_data">
     					<div class="form-control">
           			<div class="flex space-x-2 px-4">
             			<input requierd type="text" name="rm_id" placeholder="Read model id" class="w-1/2 input input-primary input-bordered">
-            			<input hidden name="read_model" value={CxNewWeb.CanvasLive.module_to_string(read_model)} />
+            			<input hidden name="read_model" value={CxNew.Helpers.module_to_string(read_model)} />
             			<button class="btn btn-primary">show </button>
           			</div>
         			</div>
@@ -131,7 +134,6 @@ defmodule CxNewWeb.AdminLive do
       <table class="table w-full table-compact">
         <thead>
           <tr>
-            <th></th> 
             <th>id </th>
             <th>Aggregate</th>
             <th> Events</th>
@@ -140,7 +142,6 @@ defmodule CxNewWeb.AdminLive do
         <tbody>
         <%= for {stream, index} <- Enum.with_index(@streams) do %>
           <tr class="">
-            <th><%= index %> </th>
             <td><%= stream["stream_id"] %> </td>
             <td><%= stream["aggregate"] %> </td>
             <td> <ol>

@@ -4,6 +4,15 @@ defmodule ReadModel do
       use GenServer
       require Logger
 
+
+      def subscribe(id) do
+        Phoenix.PubSub.subscribe(CxNew.PubSub, to_string(__MODULE__) <> ":" <> id)
+      end
+
+      def broadcast(id, state) do
+        Phoenix.PubSub.broadcast(CxNew.PubSub, to_string(__MODULE__) <> ":" <> id, {:read_model_update, id, state})
+      end
+
       def start_link(args) do
         GenServer.start_link(__MODULE__, [], name: __MODULE__)
       end
@@ -52,9 +61,9 @@ defmodule ReadModel do
       end
 
 			def update_read_model_and_bookmark(rm_id, stream_name, rm_data, revision) do
-  			IO.puts "inserting bookmark"
-  			IO.inspect stream_name
 				:ets.insert(__MODULE__, [{rm_id, rm_data}, {"bookmark:"<> stream_name, revision}])
+				broadcast(rm_id, rm_data)
+				:ok
   	  end
 
       defp subscribe_all(from),
@@ -92,8 +101,10 @@ defmodule ReadModel do
           ## this will give duplicated
           nil = spear_event.link
           body = Jason.decode!(body, keys: :atoms)
+          IO.puts "event type is"
+          IO.inspect type
 
-          {("Elixir.Event." <> type)
+          {("Elixir.#{CxNew.Helpers.app()}.Event." <> type)
            |> String.to_existing_atom()
            |> struct(body), md}
         rescue

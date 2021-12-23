@@ -20,7 +20,9 @@ defmodule CxNewWeb.Router do
     live("/admin", AdminLive, :index)
     live("/flows", CanvasLive, :index)
     live("/flows/:flow", CanvasLive, :show)
-  end
+
+    live("/counter", LiveView.TulleLive, :index)
+    end
 
   # Other scopes may use custom stacks.
   # scope "/api", CxNewWeb do
