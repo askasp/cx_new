@@ -6,6 +6,11 @@ defmodule CxNewWeb.AdminLive do
 
     streams = get_streams()
 
+
+    IO.inspect streams
+    events = Enum.map(streams, fn stream -> stream["events"]|> Enum.map(fn event -> IO.inspect event end) end)
+    IO.inspect events
+
 		{:ok, list}  = :application.get_key(CxNew.Helpers.erlang_app(), :modules)
 
     commands =
@@ -19,7 +24,7 @@ defmodule CxNewWeb.AdminLive do
       |> Enum.filter(&(&1 |> Module.split() |> Enum.take(2) == [CxNew.Helpers.app(), "ReadModel"]))
 
     {:ok,
-     assign(socket, command: nil, streams: streams, checked: nil, events: [], commands: commands, modal_open: false, read_models: read_models, read_model: nil, read_model_data: nil)}
+     assign(socket, command: nil, streams: streams, checked: nil, events: [], commands: commands, modal_open: false, read_models: read_models, read_model: nil, read_model_data: nil, event: nil,  event_metadata: nil)}
   end
 
 
@@ -39,6 +44,40 @@ defmodule CxNewWeb.AdminLive do
   def handle_event("toggle_command_modal", %{"command" => string_command}, socket) do
     {:noreply, assign(socket, modal_open: true, command: String.to_existing_atom(string_command))}
   end
+
+
+
+  def handle_event("load_events", %{"stream" => clicked_stream}, socket ) do
+    [chosen_stream] = socket.assigns.streams |> Enum.filter(fn stream -> stream["stream_id"] == clicked_stream end)
+    IO.inspect chosen_stream
+
+    {:ok, events} = Spear.read_stream(CxNew.EventStoreDbClient, chosen_stream["aggregate"]<> ":" <>chosen_stream["stream_id"], max_count: 99999)
+    IO.puts "events are"
+    events = Enum.map(events, fn event -> CxNew.Helpers.map_spear_event_to_domain_event(event) end)
+    IO.inspect events
+    new_stream = Map.put(chosen_stream, "events", events)
+    new_streams = socket.assigns.streams |> Enum.map(fn stream ->
+      if stream["stream_id"] == clicked_stream do
+        new_stream
+      else
+      	stream
+      end
+      end)
+
+    {:noreply, assign(socket, streams: new_streams)}
+  end
+
+
+  def handle_event("set_event", %{"stream" => clicked_stream, "revision" => revision}, socket ) do
+    [chosen_stream] = socket.assigns.streams |> Enum.filter(fn stream -> stream["stream_id"] == clicked_stream end)
+    {event, metadata} = Enum.at(chosen_stream["events"], String.to_integer(revision))
+    {:noreply, assign(socket, event: event, event_metadata: metadata)}
+  end
+
+  def handle_event("nil_event", _, socket ) do
+    {:noreply, assign(socket, event: nil, event_metadata: nil)}
+  end
+
 
   def handle_event("dispatch", params, socket) do
     atom_params =
@@ -62,17 +101,22 @@ defmodule CxNewWeb.AdminLive do
 
   def render(assigns) do
     ~H"""
+
+  	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2/dist/tailwind.min.css" rel="stylesheet" type="text/css" />
+ 		<link href="https://cdn.jsdelivr.net/npm/daisyui@1.19.0/dist/full.css" rel="stylesheet" type="text/css" />
+
+ 		<%= view_event(%{event: @event, event_metadata: @event_metadata}) %>
+
     <div class="p-20 pt-5">
-    	<div class="prose " style="max-width:none;">
-       <h1 class=""> Admin Panel</h1>
+    	<div class="" style="max-width:none;">
+       <h1 class="text-3xl font-bold"> Admin Panel</h1>
     	 	<div class="py-5" >
-   				<h3 class=""> Dispatch a Command</h3>
+   				<h3 class="text-xl mt-8 mb-1 font-bold"> Dispatch a Command</h3>
     			<%= if @command do %>
     				<input type="checkbox" checked={@modal_open} class="modal-toggle" >
             <div class="modal">
               <div class="modal-box">
-              <h3> <%= to_string(@command) %> </h3>
-
+              <h3 class="text-lg font-bold mb-2"> <%= CxNew.Helpers.module_to_string(@command) %> </h3>
               <form phx-submit="dispatch" >
                 <div class="form-control">
                   <%= for key <- Map.keys(Map.from_struct(@command)) do %>
@@ -84,8 +128,8 @@ defmodule CxNewWeb.AdminLive do
                 </div>
 
                 <div class="modal-action">
-                 <input type="submit" class="btn btn-primary" value="Dispatch" >
-                 <label for="my-modal-2" class="btn" phx-click="toggle_command_modal" >Close</label>
+                 <button type="submit" class="btn btn-primary"> Dispatch </button>
+                 <button for="my-modal-2" class="btn" phx-click="toggle_command_modal" >Close</button>
                 </div>
               </form>
             </div>
@@ -100,7 +144,7 @@ defmodule CxNewWeb.AdminLive do
           <% end %>
         </div>
 
-      <h3> Read Models </h3>
+   		<h3 class="text-xl mt-8 mb-1 font-bold"> Read Models </h3>
   		<div class="grid grid-cols-4 gap-4">
       	<%= for read_model <- @read_models do %>
         	<div class=" w-full pb-2 border rounded-box border-base-300 collapse-arrow">
@@ -118,9 +162,13 @@ defmodule CxNewWeb.AdminLive do
         		</form>
         		<%= if read_model == @read_model  && @read_model_data do %>
           		<div class="px-4">
-            		<h4> State </h4>
-          			<%= for {key, value} <- @read_model_data do %>
-            			<span> <b> <%= key %>: </b> <%= value %> </span>
+            		<h4 class="text-lg font-bold"> State </h4>
+            		<%= if is_map(@read_model_data) do %>
+          				<%= for {key, value} <- @read_model_data do %>
+            				<span class=" text-sm"> <b class="font-bold text-sm"> <%= key %>: </b> <%= value %> </span>
+            	  	<% end %>
+            	  <% else %>
+            			<span class=" text-sm"> <b class="font-bold text-sm"> value: </b> <%= @read_model_data %> </span>
             	  <% end %>
           		</div>
           	<% end %>
@@ -128,8 +176,7 @@ defmodule CxNewWeb.AdminLive do
         <% end %>
       </div>
 
-
-    <h3> Streams </h3>
+   <h3 class="text-xl mt-8 mb-1 font-bold"> Streams </h3>
     <div class="overflow-x-auto">
       <table class="table w-full table-compact">
         <thead>
@@ -145,8 +192,14 @@ defmodule CxNewWeb.AdminLive do
             <td><%= stream["stream_id"] %> </td>
             <td><%= stream["aggregate"] %> </td>
             <td> <ol>
-            <%= for event <- stream["events"] do %>
-            	<li> <%= event.type %> </li>
+            <%= if length(stream["events"]) > 0 do %>
+            <%= for {event, metadata} <- stream["events"] do %>
+            	<li>
+            		<a  phx-click="set_event" phx-value-stream={stream["stream_id"]} phx-value-revision={metadata.stream_revision}> <%= event.__struct__ |> Module.split |> Enum.join(".") %> </a>
+              </li>
+            <% end %>
+            <%= else %>
+            		<a  phx-click="load_events" phx-value-stream={stream["stream_id"]} > Load events </a>
             <% end %>
             </ol>
             </td>
@@ -169,15 +222,39 @@ defmodule CxNewWeb.AdminLive do
     String.split(stream_name, ".") |> Enum.at(-1) |> String.split(":") |> Enum.at(0)
   end
 
+  def view_event(assigns) do
+    ~H"""
+    <%= if @event do %>
+    				<input type="checkbox" checked={@event != nil} class="modal-toggle" >
+            <div class="modal">
+              <div class="modal-box">
+              <h3 class="text-lg font-bold mb-2"> <%= @event.__struct__ |> Module.split |> Enum.join(".") %> </h3>
+              <div>
+                  <%= for {key,value} <- (Map.from_struct(@event)) do %>
+                    <label class="label">
+                      <span class="label-text"> <%= key %>: <%= value %>  </span>
+                    </label>
+                    <% end %>
+               </div>
+
+                <div class="modal-action">
+                 <button for="my-modal-2" class="btn" phx-click="nil_event" >Close</button>
+
+                </div>
+            </div>
+            </div>
+            <% end %>
+           """
+  end
 
   defp get_streams() do
       Spear.stream!(CxNew.EventStoreDbClient, "$streams")
       |> Enum.to_list()
       |> Enum.map(fn x ->
-    		{:ok, events} = Spear.read_stream(CxNew.EventStoreDbClient, x.metadata.stream_name, max_count: 50)
+        IO.inspect x.metadata.stream_name
         %{"stream_id" => get_stream_id(x.metadata.stream_name),
         	"aggregate" => get_stream_aggregate(x.metadata.stream_name),
-        	"events" => events}
+        	"events" =>  []}
         end)
    end
 

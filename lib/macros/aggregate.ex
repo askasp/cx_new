@@ -6,7 +6,11 @@ defmodule Aggregate do
 
       def start_link(args) do
         [stream_id: stream_id, name: name] = args
+        if stream_id == "" do
+          {:error, "stream_id cant be empty"}
+        else
         GenServer.start_link(__MODULE__, [CxNew.Helpers.module_to_string(__MODULE__) <> ":" <> stream_id], name: name)
+        end
       end
 
       def execute(command) do

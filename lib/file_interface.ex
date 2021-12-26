@@ -35,12 +35,16 @@ defmodule CxNew.FileInterface do
   end
 
 
-  def write_read_model_supervisor() do
+  def write_read_model_supervisor(read_model) do
 		{:ok, list}  = :application.get_key(CxNew.Helpers.erlang_app(), :modules)
-
     read_models =
       list
       |> Enum.filter(&(&1 |> Module.split() |> Enum.take(2) == [CxNew.Helpers.app(), "ReadModel"]))
+
+
+			read_model_module = "Elixir.#{read_model}" |> String.to_existing_atom()
+
+			read_models = read_models ++ [read_model_module]
 
       IO.inspect read_models
 
@@ -61,10 +65,7 @@ defmodule CxNew.FileInterface do
         end
         """
         )
-
     end
-
-
 
 
   def create_flow(flowname) do
@@ -111,7 +112,7 @@ defmodule CxNew.FileInterface do
           %{
             "gui_id" => UUID.uuid1(),
             "type" => "liveview",
-            "module" => String.to_existing_atom("Elixir.#{Helpers.app()}.LiveView.#{String.capitalize(liveview_name)}"),
+            "module" => String.to_existing_atom("Elixir.#{Helpers.app()}Web.LiveView.#{String.capitalize(liveview_name)}Live"),
             "dispatched_by" => dispatched_by
           }
         ]
@@ -146,12 +147,10 @@ defmodule CxNew.FileInterface do
         					 # get state
         					 # |> update state
         					 # |>persist state
+        					 :ok
         				 end
         			  """
     end
-
-    IO.inspect "handler is"
-    IO.inspect handler
 
     case File.read("lib/cx_scaffold/read_models/#{rm_name}.ex") do
       {:ok, content} ->
@@ -195,7 +194,7 @@ defmodule CxNew.FileInterface do
 
     write_flow(Helpers.flow_name_from_flow(flow), new_flow)
     recompile()
-    write_read_model_supervisor()
+    write_read_model_supervisor("#{Helpers.app()}.ReadModel.#{String.capitalize(rm_name)}")
   end
 
   def add_processer_to_flow(flow, processer_name, dispatched_by \\ nil) do
@@ -355,7 +354,6 @@ defmodule CxNew.Helpers do
     module_to_string(flow) |> String.downcase()
   end
 
-
   def strip_elixir_from_module(module), do: String.split(to_string(module), "Elixir.") |> Enum.at(1)
   def strip_app_from_module(module), do: String.split(to_string(module), "#{app()}.") |> Enum.at(1)
   def module_to_string(module), do: strip_elixir_from_module(module)  |> strip_app_from_module() |>  strip_command_event()
@@ -366,4 +364,25 @@ defmodule CxNew.Helpers do
 
   def app(), do: Application.get_env(:cx_new, :app) |> strip_elixir_from_module()
   def erlang_app(), do: Application.get_env(:cx_new, :erlang_app)
+
+
+  def map_spear_event_to_domain_event(%Spear.Event{body: body, type: type, metadata: md} = spear_event) do
+        try do
+          ## this will give duplicated
+          nil = spear_event.link
+          body = Jason.decode!(body, keys: :atoms)
+          IO.puts "event type is"
+          IO.inspect type
+
+          {("Elixir.#{CxNew.Helpers.app()}.Event." <> type)
+           |> String.to_existing_atom()
+           |> struct(body), md}
+        rescue
+          e -> {%{}, md}
+        end
+      end
+
+   def map_spear_event_to_domain_event(event), do: {%{}, %{}}
+
+
 end

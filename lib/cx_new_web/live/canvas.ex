@@ -28,8 +28,7 @@ defmodule CxNewWeb.CanvasLive do
   def handle_params(_params, _uri, socket), do: {:noreply, socket}
 
   def handle_event("set_flow", %{"flow" => flow}, socket) do
-    IO.inspect(flow)
-    {:noreply, push_patch(socket, to: Routes.canvas_path(socket, :show, String.downcase(flow)))}
+    {:noreply, push_patch(socket, to: "/cx/flows/#{String.downcase(flow)}")}
   end
 
   def handle_event("toggle_add_flow_modal", %{}, socket) do
@@ -41,16 +40,19 @@ defmodule CxNewWeb.CanvasLive do
   end
 
   def handle_event("create_flow", %{"filename" => filename}, socket) do
-    new_flow = FileInterface.create_flow(filename)
+    # This is sent when  I press close on set flow modal, It should not.. but this works for now
+    if filename == "" do
+    {:noreply, assign(socket, show_add_flow_modal: false)}
+    else
+    FileInterface.create_flow(filename)
     {:noreply, assign(socket, flows: FileInterface.get_flows(), show_add_flow_modal: false)}
+    end
   end
 
   @impl true
   def handle_event("add_liveview", %{"filename" => filename, "dispatched_by" => dispatched_by}, socket) do
     FileInterface.add_liveview_to_flow(socket.assigns.flow, filename, Helpers.none_to_nil(dispatched_by))
-
-    {:noreply,
-     redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(Helpers.module_to_string(socket.assigns.flow))))}
+    {:noreply, redirect(socket, to: "/cx/flows/#{Helpers.flow_name_from_flow(socket.assigns.flow)}")}
   end
 
   @impl true
@@ -72,8 +74,7 @@ defmodule CxNewWeb.CanvasLive do
       Helpers.none_to_nil(dispatched_by)
     )
 
-    {:noreply,
-     redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(Helpers.module_to_string(socket.assigns.flow))))}
+    {:noreply, redirect(socket, to: "/cx/flows/#{Helpers.flow_name_from_flow(socket.assigns.flow)}")}
   end
 
   @impl true
@@ -86,8 +87,7 @@ defmodule CxNewWeb.CanvasLive do
         socket
       ) do
         FileInterface.add_read_model_to_flow(socket.assigns.flow, rm_filename, Helpers.none_to_nil(dispatched_by))
-    {:noreply,
-     redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(Helpers.module_to_string(socket.assigns.flow))))}
+    {:noreply, redirect(socket, to: "/cx/flows/#{Helpers.flow_name_from_flow(socket.assigns.flow)}")}
   end
 
   @impl true
@@ -100,8 +100,7 @@ defmodule CxNewWeb.CanvasLive do
         socket
       ) do
         FileInterface.add_processer_to_flow(socket.assigns.flow, processer_filename, Helpers.none_to_nil(dispatched_by))
-    {:noreply,
-     redirect(socket, to: Routes.canvas_path(socket, :show, String.downcase(Helpers.module_to_string(socket.assigns.flow))))}
+    {:noreply, redirect(socket, to: "/cx/flows/#{Helpers.flow_name_from_flow(socket.assigns.flow)}")}
   end
 
   def get_aggregates(flow) do
@@ -111,14 +110,14 @@ defmodule CxNewWeb.CanvasLive do
     |> Enum.uniq()
   end
 
-  defp aggregate_height(i), do: (6 + 1.5 * i) * @height_unit
+  defp aggregate_height(i), do: (8 + 1.5 * i) * @height_unit
 
   defp event_height(event_component, aggregates) do
     Enum.find_index(aggregates, fn x -> x == event_component["aggregate"] end)
     |> aggregate_height
   end
 
-  defp left_shift(_component, i), do: (4 + i) * @width_unit
+  defp left_shift(_component, i), do: (7 + i) * @width_unit
 
   def recompile() do
     IEx.Helpers.recompile()
@@ -127,64 +126,101 @@ defmodule CxNewWeb.CanvasLive do
 
   def render(assigns) do
     ~H"""
-        <div class="prose md:p-8">
-        <h1 class=""> Generate Flows </h1>
+
+  	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2/dist/tailwind.min.css" rel="stylesheet" type="text/css" />
+ 		<link href="https://cdn.jsdelivr.net/npm/daisyui@1.19.0/dist/full.css" rel="stylesheet" type="text/css" />
+
+<div class="shadow bg-base-200 drawer drawer-mobile h-full min-h-screen w-full min-w-screen" >
+  <input id="my-drawer-2" type="checkbox" class="drawer-toggle"> 
+  <div class="flex flex-col drawer-content">
+  <div class="md:hidden">
+    <label for="my-drawer-2" class="mb-4 btn btn-primary drawer-button lg:hidden">open menu</label>
+    </div>
+    <div class="hidden lg:block bg-base-200">
+        <div class="md:p-8" >
+        <h1 class="text-3xl font-bold"> Generate Flows </h1>
         </div>
-
     	<div class="py-40" >
-    		<%= case @flow do %>
-    			<%= nil -> %> <%= choose_flow_page(%{flows: @flows, flow_name_suggestion: @flow_name_suggestion, show_add_flow_modal: @show_add_flow_modal}) %>
-    			<%= _ -> %> <%= flow_page(%{flow: @flow.flow(), aggregates: get_aggregates(@flow), myheight: 100}) %>
-    		<% end %>
-
-     <%= if @flow do %>
-        <%= for component <- @flow.flow() do %>
-        	<%= if component["dispatched_by"] != nil  do %>
-
-          	<connection from={"#" <> component["dispatched_by"]} to={"#" <> component["gui_id"]}  fromY="0.5"  toY="0.5" tail="true" ></connection>
-            <% end %>
-          <% end %>
-    		<% end %>
-    	</div>
-    """
-  end
-
-  def choose_flow_page(assigns) do
-    ~H"""
-        <div class="mx-auto text-center">
-          <%= for flow <- @flows do %>
-          <div class="my-10">
-            <button phx-click="set_flow" phx-value-flow={Helpers.module_to_string(flow)} class=
-            "btn btn-info"><%= Helpers.module_to_string(flow) %></button>
-          </div><%end %>
-          <div class="my-20">
-            <button phx-click="toggle_add_flow_modal" class="btn btn-secondary modal-button" > Create New Flow </button>
             <%= if @show_add_flow_modal do %>
             <div class="modal modal-open">
               <div class="modal-box prose text-left">
                 <h3>Add Flow</h3>
                 <form phx-submit="create_flow" phx-change="validate_flow_name" >
-                <h4> Generated module: <%= "Flow.#{String.capitalize(@flow_name_suggestion)}" %>  </h4>
+                <h4 class="text-lg mb-2"> Name of generated module: <%= "Flow.#{String.capitalize(@flow_name_suggestion)}" %>  </h4>
                   <div class="form-control">
                     <label class="label"><span class=
                     "label-text">Filename</span></label> <input name=
                     "filename" type="text" placeholder="myflow" class=
                     "input input-bordered">
                   </div>
+
                   <div class="modal-action">
-                    <input for="my-modal-3" type="submit" class=
-                    "btn btn-primary" value="Create">
-                    <button class="toggle_add_flow_modal" class="btn">Close</button>
+                    <button for="my-modal-3" type="submit" class="btn btn-primary"> Create </button>
+                    <button phx-click="toggle_add_flow_modal" class="btn btn-active">Close</button>
                   </div>
                 </form>
               </div>
             </div>
             <% end %>
-          </div>
-        </div>
+
+
+    		<%= case @flow do %>
+    			<%= nil -> %>
+  			<%= _ -> %> <%= flow_page(%{flow: @flow.flow(), aggregates: get_aggregates(@flow), myheight: 100}) %>
+    		<% end %>
+
+     <%= if @flow do %>
+        <%= for component <- @flow.flow() do %>
+        	<%= if component["dispatched_by"] != nil  do %>
+          	<connection from={"#" <> component["dispatched_by"]} to={"#" <> component["gui_id"]}  fromY="0.5"  toY="0.5" tail="true" ></connection>
+            <% end %>
+          <% end %>
+    		<% end %>
+    	</div>
+    </div>
+
+    <div class="text-xs text-center lg:hidden">Menu can be toggled on mobile size.
+      <br>Resize the browser to see fixed sidebar on desktop size
+    </div>
+  </div> 
+  <div class="drawer-side">
+    <label for="my-drawer-2" class="drawer-overlay"></label> 
+    <ul class="menu p-4 overflow-y-auto w-80 bg-base-100 text-base-content">
+				<li> <%= live_patch "Admin", to: "/cx/admin" %> </li>
+      <li>
+				<%= live_redirect "Flows", to: "/cx/flows" %>
+        <ul class="list-disc my-0 mx-0">
+          <%= for flow <- @flows do %>
+				    <li> <%= live_patch Helpers.module_to_string(flow), to: "/cx/flows/#{Helpers.module_to_string(flow) |> String.downcase()}" %> </li>
+          <%end %>
+
+        <li phx-click="toggle_add_flow_modal" class="p-3 rounded-md hover:bg-base-300 rounded">
+          <div phx-click="toggle_add_flow_modal"  class="flex flex-auto gap-4">
+            <button phx-click="toggle_add_flow_modal" class="btn btn-circle btn-primary btn-sm"> + </button>
+            <a> Add flow </a>
+ 					</div>
+        </li>
+        </ul>
+
+      </li>
+
+
+
+
+
+    </ul>
+
+
+
+
+  </div>
+</div>
+
+
 
     """
   end
+
 
   def flow_page(assigns) do
     ~H"""
@@ -197,7 +233,7 @@ defmodule CxNewWeb.CanvasLive do
     <div class="px-10 prose">
     <%= for {aggregate,i} <- Enum.with_index(@aggregates) do %>
     <div style={"position: absolute; top: #{aggregate_height(i)}px"} >
-    <h3> <%= Helpers.module_to_string(aggregate) %> </h3>
+    <h3 class="text-2xl font-bold"> <%= Helpers.module_to_string(aggregate) %> </h3>
     <div class="divider w-screen"></div>
     </div>
     <% end %>
@@ -262,14 +298,14 @@ defmodule CxNewWeb.CanvasLive do
             "modal-toggle">
             <div class="modal">
               <div class="modal-box">
-                <h4><%= title %> </h4>
+                <h4 class="text-xl font-bold"><%= title %> </h4>
                 <form phx-submit={submit} >
                   <%= custom_content.(%{}) %>
                   <%= dispatched_by_select(%{flow: @flow}) %>
                   <div class="modal-action">
-                    <input for={title} type="submit" class=
-                    "btn btn-primary" value="Create"> <label for={title}
-                    class="btn">Close</label>
+                    <button for={title} type="submit" class="btn btn-primary btn-md"> Create </button>
+
+                    <label for={title} class="btn btn-md">Close</label>
                   </div>
                 </form>
               </div>
@@ -342,6 +378,8 @@ defmodule CxNewWeb.CanvasLive do
 
     """
   end
+
+
 end
 
 defmodule CxNewWeb.PaymentLive do

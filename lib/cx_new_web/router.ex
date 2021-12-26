@@ -16,11 +16,9 @@ defmodule CxNewWeb.Router do
 
   scope "/", CxNewWeb do
     pipe_through(:browser)
-
     live("/admin", AdminLive, :index)
     live("/flows", CanvasLive, :index)
     live("/flows/:flow", CanvasLive, :show)
-
     live("/counter", LiveView.TulleLive, :index)
     end
 

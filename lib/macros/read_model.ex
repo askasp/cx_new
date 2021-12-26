@@ -60,7 +60,10 @@ defmodule ReadModel do
         :ets.insert(__MODULE__, {id, data})
       end
 
-			def update_read_model_and_bookmark(rm_id, stream_name, rm_data, revision) do
+
+			def update_read_model_and_bookmark(rm_id, rm_data, metadata), do: update_read_model_and_bookmark(rm_id, rm_data, metadata.stream_name, metadata.stream_revision)
+			def update_read_model_and_bookmark(rm_id, rm_data, stream_name, revision) do
+  			IO.inspect "set stream_name #{stream_name}"
 				:ets.insert(__MODULE__, [{rm_id, rm_data}, {"bookmark:"<> stream_name, revision}])
 				broadcast(rm_id, rm_data)
 				:ok
@@ -86,7 +89,7 @@ defmodule ReadModel do
             {:noreply, _state}
 
           new_revision ->
-        		{domain_event, metadata} = map_spear_event_to_domain_event(event)
+        		{domain_event, metadata} = CxNew.Helpers.map_spear_event_to_domain_event(event)
             :ok = handle_event({domain_event, metadata})
             ## send event revision as a
         end
@@ -96,23 +99,6 @@ defmodule ReadModel do
 
       def handle_info(_,state), do: {:noreply, state}
 
-      defp map_spear_event_to_domain_event(%Spear.Event{body: body, type: type, metadata: md} = spear_event) do
-        try do
-          ## this will give duplicated
-          nil = spear_event.link
-          body = Jason.decode!(body, keys: :atoms)
-          IO.puts "event type is"
-          IO.inspect type
-
-          {("Elixir.#{CxNew.Helpers.app()}.Event." <> type)
-           |> String.to_existing_atom()
-           |> struct(body), md}
-        rescue
-          e -> {%{}, md}
-        end
-      end
-
-      defp map_spear_event_to_domain_event(event), do: {%{}, %{}}
     end
   end
 end
