@@ -143,6 +143,8 @@ defmodule CxNewWeb.AdminLive do
     			<%= if @command do %>
     				<input type="checkbox" checked={@modal_open} class="modal-toggle" >
             <div class="modal">
+              <div class="modal-box">
+              <h3 class="text-lg font-bold mb-2"> <%= CxNew.Helpers.module_to_string(@command) %> </h3>
                 <%= if @alert_content do %>
                 <div class="alert alert-error">
                   <div class="flex-1">
@@ -153,8 +155,6 @@ defmodule CxNewWeb.AdminLive do
                   </div>
                 </div>
                 <% end %>
-              <div class="modal-box">
-              <h3 class="text-lg font-bold mb-2"> <%= CxNew.Helpers.module_to_string(@command) %> </h3>
               <form phx-submit="dispatch" >
                 <div class="form-control">
                   <%= for key <- Map.keys(Map.from_struct(@command)) do %>
