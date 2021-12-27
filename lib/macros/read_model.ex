@@ -36,6 +36,7 @@ defmodule ReadModel do
       def get_all() do
         :ets.tab2list(__MODULE__)
         |> Enum.filter(fn {key, elem} -> String.contains?(key, "bookmark") == false end)
+        |> Enum.map(fn {key, elem} -> elem end )
       end
 
       def get_bookmark(stream_name) do
