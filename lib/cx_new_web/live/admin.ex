@@ -1,5 +1,6 @@
 defmodule CxNewWeb.AdminLive do
   use CxNewWeb, :live_view
+  require Logger
 
   def mount(_params, _, socket) do
     IEx.Helpers.recompile()
@@ -89,10 +90,12 @@ defmodule CxNewWeb.AdminLive do
       end
 
     struct = struct(socket.assigns.command, atom_params)
-    CommandDispatcher.dispatch(struct)
-    streams = get_streams()
-
-    {:noreply, assign(socket, modal_open: false, streams: streams)}
+    case CommandDispatcher.dispatch(struct) do
+      :ok -> streams = get_streams()
+      			{:noreply, assign(socket, modal_open: false, streams: streams)}
+      err -> Logger.err("Something went wrong #{inspect(err)}") ## Create an alert modal here
+      			 {:noreply, socket}
+      	end
   end
 
   def handle_event("toggle_command_modal", %{}, socket) do
