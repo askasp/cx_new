@@ -37,8 +37,8 @@ defmodule CxNewWeb.AdminLive do
     case socket.assigns.read_model do
       x when x == read_model ->
         {:noreply, assign(socket, read_model: nil)}
-      _ ->
-        {:noreply, assign(socket, read_model: read_model, read_model_data: data)}
+      x ->
+        {:noreply, assign(socket, read_model: read_model, read_model_data: Map.delete(data, :__struct__))}
     end
   end
 
