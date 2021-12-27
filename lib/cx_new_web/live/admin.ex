@@ -167,7 +167,7 @@ defmodule CxNewWeb.AdminLive do
 
                 <div class="modal-action">
                  <button type="submit" class="btn btn-primary"> Dispatch </button>
-                 <a for="my-modal-2" class="btn btn-primary" phx-click="toggle_command_modal" >Close</a>
+                 <a for="my-modal-2" class="btn " phx-click="toggle_command_modal" >Close</a>
                 </div>
               </form>
             </div>
