@@ -144,7 +144,7 @@ defmodule CxNewWeb.AdminLive do
     				<input type="checkbox" checked={@modal_open} class="modal-toggle" >
             <div class="modal">
               <div class="modal-box">
-              <h3 class="text-lg font-bold mb-2"> <%= CxNew.Helpers.module_to_string(@command) %> </h3>
+              <h3 class="text-lg font-bold mb-2"> <%= CxNew.Helpers.module_to_string(@command) |> Macro.underscore() %> </h3>
                 <%= if @alert_content do %>
                 <div class="alert alert-error">
                   <div class="flex-1">
