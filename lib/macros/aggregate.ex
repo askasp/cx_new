@@ -25,11 +25,13 @@ defmodule Aggregate do
 
       def handle_cast(:finish_init, {stream_id, nil, 0}) do
     		{:ok, events} = Spear.read_stream(CxNew.EventStoreDbClient, stream_id, max_count: 99999)
+    		domain_events = Enum.map(events, fn event -> {domain_event, _ } = CxNew.Helpers.map_spear_event_to_domain_event(event)
+    		domain_event
+    		end)
 
-        state = Enum.reduce(events, nil, fn event, state ->
-          {domain_event,metadata} = CxNew.Helpers.map_spear_event_to_domain_event(event)
+        state = Enum.reduce(domain_events, nil, fn domain_event, state ->
           apply_event(state, domain_event) end)
-        {:noreply, {stream_id, state, length(events)}}
+        {:noreply, {stream_id, state, length(domain_events)}}
       end
 
       def handle_call(
