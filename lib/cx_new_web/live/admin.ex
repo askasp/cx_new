@@ -203,8 +203,9 @@ defmodule CxNewWeb.AdminLive do
             		<h4 class="text-lg font-bold"> State </h4>
             		<%= if is_map(@read_model_data) do %>
           				<%= for {key, value} <- @read_model_data do %>
+          				<div class="pt-1">
             				<span class=" text-sm"> <b class="font-bold text-sm"> <%= key %>: </b> <%= value %> </span>
-            				<br/>
+            			</div>
             	  	<% end %>
             	  <% else %>
             			<span class=" text-sm"> <b class="font-bold text-sm"> value: </b> <%= @read_model_data %> </span>
