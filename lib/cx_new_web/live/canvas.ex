@@ -146,7 +146,7 @@ defmodule CxNewWeb.CanvasLive do
               <div class="modal-box prose text-left">
                 <h3>Add Flow</h3>
                 <form phx-submit="create_flow" phx-change="validate_flow_name" >
-                <h4 class="text-lg mb-2"> Name of generated module: <%= "Flow.#{String.capitalize(@flow_name_suggestion)}" %>  </h4>
+                <h4 class="text-lg mb-2"> Name of generated module: <%= "Flow.#{Macro.camelize(@flow_name_suggestion)}" %>  </h4>
                   <div class="form-control">
                     <label class="label"><span class=
                     "label-text">Filename</span></label> <input name=

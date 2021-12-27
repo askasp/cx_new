@@ -13,7 +13,7 @@ defmodule CxNew.FileInterface do
       {:ok, files} ->
         Enum.map(files, fn file ->
           filename = String.split(file, ".e") |> Enum.at(0)
-          String.to_existing_atom("Elixir.#{Helpers.app()}.Flow.#{String.capitalize(filename)}")
+          String.to_existing_atom("Elixir.#{Helpers.app()}.Flow.#{Macro.camelize(filename)}")
         end)
     end
   end
@@ -25,7 +25,7 @@ defmodule CxNew.FileInterface do
     File.write(
       "lib/cx_scaffold/flows/#{flow_name}.ex",
       """
-      defmodule #{Helpers.app()}.Flow.#{String.capitalize(flow_name)} do
+      defmodule #{Helpers.app()}.Flow.#{Macro.camelize(flow_name)} do
       def flow do
         #{inspect(flow)}
        end
@@ -89,7 +89,7 @@ defmodule CxNew.FileInterface do
         File.mkdir_p("lib/cx_scaffold/liveviews")
 
         File.write("lib/cx_scaffold/liveviews/#{liveview_name}.ex", """
-        defmodule #{Helpers.app()}Web.LiveView.#{String.capitalize(liveview_name)}Live do
+        defmodule #{Helpers.app()}Web.LiveView.#{Macro.camelize(liveview_name)}Live do
         use Phoenix.LiveView
           def mount(_params, %{}, socket) do
             {:ok, socket}
@@ -112,7 +112,7 @@ defmodule CxNew.FileInterface do
           %{
             "gui_id" => UUID.uuid1(),
             "type" => "liveview",
-            "module" => String.to_existing_atom("Elixir.#{Helpers.app()}Web.LiveView.#{String.capitalize(liveview_name)}Live"),
+            "module" => String.to_existing_atom("Elixir.#{Helpers.app()}Web.LiveView.#{Macro.camelize(liveview_name)}Live"),
             "dispatched_by" => dispatched_by
           }
         ]
@@ -161,7 +161,7 @@ defmodule CxNew.FileInterface do
       {:error, _} ->
         File.mkdir_p("lib/cx_scaffold/read_models")
         File.write("lib/cx_scaffold/read_models/#{rm_name}.ex", """
-        defmodule #{Helpers.app()}.ReadModel.#{String.capitalize(rm_name)} do
+        defmodule #{Helpers.app()}.ReadModel.#{Macro.camelize(rm_name)} do
           use ReadModel
           #{handler}
 
@@ -192,14 +192,14 @@ defmodule CxNew.FileInterface do
           %{
             "gui_id" => guid,
             "type" => "read_model",
-            "module" => String.to_existing_atom("Elixir.#{Helpers.app()}.ReadModel.#{String.capitalize(rm_name)}"),
+            "module" => String.to_existing_atom("Elixir.#{Helpers.app()}.ReadModel.#{Macro.camelize(rm_name)}"),
             "dispatched_by" => dispatched_by
           }
         ]
 
     write_flow(Helpers.flow_name_from_flow(flow), new_flow)
     recompile()
-    write_read_model_supervisor("#{Helpers.app()}.ReadModel.#{String.capitalize(rm_name)}")
+    write_read_model_supervisor("#{Helpers.app()}.ReadModel.#{Macro.camelize(rm_name)}")
   end
 
   def add_processer_to_flow(flow, processer_name, dispatched_by \\ nil) do
@@ -211,7 +211,7 @@ defmodule CxNew.FileInterface do
         File.mkdir_p("lib/cx_scaffold/processers")
 
         File.write("lib/cx_scaffold/processers/#{processer_name}.ex", """
-        defmodule #{Helpers.app()}.Processer.#{String.capitalize(processer_name)} do
+        defmodule #{Helpers.app()}.Processer.#{Macro.camelize(processer_name)} do
           #use Processor
         end
         """)
@@ -227,7 +227,7 @@ defmodule CxNew.FileInterface do
           %{
             "gui_id" => guid,
             "type" => "processer",
-            "module" => String.to_existing_atom("Elixir.#{Helpers.app()}.Processer.#{String.capitalize(processer_name)}"),
+            "module" => String.to_existing_atom("Elixir.#{Helpers.app()}.Processer.#{Macro.camelize(processer_name)}"),
             "dispatched_by" => dispatched_by
           }
         ]
@@ -240,11 +240,11 @@ defmodule CxNew.FileInterface do
     create_command_dispatcher()
 
     agg_function = """
-    	def execute(%Command.#{String.capitalize(command_name)}{}, state) do
-      	{:ok, %Event.#{String.capitalize(event_name)}{}}
+    	def execute(%Command.#{Macro.camelize(command_name)}{}, state) do
+      	{:ok, %Event.#{Macro.camelize(event_name)}{}}
     	end
 
-    	def apply_event(state,%Event.#{String.capitalize(event_name)}{}) do
+    	def apply_event(state,%Event.#{Macro.camelize(event_name)}{}) do
       	new_state = state
       	new_state
     	end
@@ -258,13 +258,13 @@ defmodule CxNew.FileInterface do
         File.mkdir_p("lib/cx_scaffold/commands")
 
         File.write("lib/cx_scaffold/commands/#{command_name}.ex", """
-        defmodule #{Helpers.app()}.Command.#{String.capitalize(command_name)} do
+        defmodule #{Helpers.app()}.Command.#{Macro.camelize(command_name)} do
           defstruct [:stream_id]
         end
 
-        defimpl CommandDispatcher, for: #{Helpers.app()}.Command.#{String.capitalize(command_name)} do
+        defimpl CommandDispatcher, for: #{Helpers.app()}.Command.#{Macro.camelize(command_name)} do
           def dispatch(command) do
-            #{Helpers.app()}.Aggregate.#{String.capitalize(aggregate)}.execute(command)
+            #{Helpers.app()}.Aggregate.#{Macro.camelize(aggregate)}.execute(command)
           end
         end
         """)
@@ -279,15 +279,15 @@ defmodule CxNew.FileInterface do
             File.mkdir_p("lib/cx_scaffold/aggregates")
 
             File.write("lib/cx_scaffold/aggregates/#{aggregate}.ex", """
-            defmodule #{Helpers.app()}.Aggregate.#{String.capitalize(aggregate)} do
+            defmodule #{Helpers.app()}.Aggregate.#{Macro.camelize(aggregate)} do
               use Aggregate
               alias #{Helpers.app()}.Command
               alias #{Helpers.app()}.Event
-              def execute(%Command.#{String.capitalize(command_name)}{stream_id: stream_id} = cmd, state) do
-              	{:ok, %Event.#{String.capitalize(event_name)}{stream_id: stream_id}}
+              def execute(%Command.#{Macro.camelize(command_name)}{stream_id: stream_id} = cmd, state) do
+              	{:ok, %Event.#{Macro.camelize(event_name)}{stream_id: stream_id}}
               end
 
-            	def apply_event(state,%Event.#{String.capitalize(event_name)}{}) do
+            	def apply_event(state,%Event.#{Macro.camelize(event_name)}{}) do
               	new_state = state
               	new_state
             	end
@@ -304,7 +304,7 @@ defmodule CxNew.FileInterface do
         File.mkdir_p("lib/cx_scaffold/events")
 
         File.write("lib/cx_scaffold/events/#{event_name}.ex", """
-        defmodule #{Helpers.app()}.Event.#{String.capitalize(event_name)} do
+        defmodule #{Helpers.app()}.Event.#{Macro.camelize(event_name)} do
           @derive Jason.Encoder
           defstruct [:stream_id]
         end
@@ -321,15 +321,15 @@ defmodule CxNew.FileInterface do
           %{
             "gui_id" => command_gui_id,
             "type" => "command",
-            "module" => String.to_existing_atom("Elixir.#{Helpers.app()}.Command.#{String.capitalize(command_name)}"),
+            "module" => String.to_existing_atom("Elixir.#{Helpers.app()}.Command.#{Macro.camelize(command_name)}"),
             "dispatched_by" => dispatched_by
           },
           %{
             "gui_id" => UUID.uuid1(),
             "type" => "event",
-            "module" => String.to_existing_atom("Elixir.#{Helpers.app()}.Event.#{String.capitalize(event_name)}"),
+            "module" => String.to_existing_atom("Elixir.#{Helpers.app()}.Event.#{Macro.camelize(event_name)}"),
             "dispatched_by" => command_gui_id,
-            "aggregate" => String.to_existing_atom("Elixir.#{Helpers.app()}.Aggregate.#{String.capitalize(aggregate)}")
+            "aggregate" => String.to_existing_atom("Elixir.#{Helpers.app()}.Aggregate.#{Macro.camelize(aggregate)}")
           }
         ]
 
@@ -363,7 +363,7 @@ defmodule CxNew.Helpers do
   def strip_app_from_module(module), do: String.split(to_string(module), "#{app()}.") |> Enum.at(1)
   def module_to_string(module), do: strip_elixir_from_module(module)  |> strip_app_from_module() |>  strip_command_event()
 
-  def string_to_existing_module(type,string), do: String.to_existing_atom("Elixir.#{app()}.#{type}.#{String.capitalize(string)}")
+  def string_to_existing_module(type,string), do: String.to_existing_atom("Elixir.#{app()}.#{type}.#{Macro.camelize(string)}")
   def none_to_nil("None"), do: nil
   def none_to_nil(x), do: x
 
