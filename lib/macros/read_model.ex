@@ -33,6 +33,8 @@ defmodule ReadModel do
         end
       end
 
+      def get_all(), do: :ets.tab2list(__MODULE__)
+
       def get_bookmark(stream_name) do
         IO.puts "getting bookmark from stream_name"
         IO.inspect stream_name
