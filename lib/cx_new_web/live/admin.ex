@@ -204,6 +204,7 @@ defmodule CxNewWeb.AdminLive do
             		<%= if is_map(@read_model_data) do %>
           				<%= for {key, value} <- @read_model_data do %>
             				<span class=" text-sm"> <b class="font-bold text-sm"> <%= key %>: </b> <%= value %> </span>
+            				<br/>
             	  	<% end %>
             	  <% else %>
             			<span class=" text-sm"> <b class="font-bold text-sm"> value: </b> <%= @read_model_data %> </span>
