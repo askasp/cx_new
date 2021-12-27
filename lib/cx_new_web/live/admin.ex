@@ -25,7 +25,7 @@ defmodule CxNewWeb.AdminLive do
       |> Enum.filter(&(&1 |> Module.split() |> Enum.take(2) == [CxNew.Helpers.app(), "ReadModel"]))
 
     {:ok,
-     assign(socket, command: nil, streams: streams, checked: nil, events: [], commands: commands, modal_open: false, read_models: read_models, read_model: nil, read_model_data: nil, event: nil,  event_metadata: nil)}
+     assign(socket, command: nil, streams: streams, checked: nil, events: [], commands: commands, modal_open: false, read_models: read_models, read_model: nil, read_model_data: nil, event: nil,  event_metadata: nil, alert_content: nil)}
   end
 
 
@@ -93,8 +93,17 @@ defmodule CxNewWeb.AdminLive do
     case CommandDispatcher.dispatch(struct) do
       :ok -> streams = get_streams()
       			{:noreply, assign(socket, modal_open: false, streams: streams)}
-      err -> Logger.err("Something went wrong #{inspect(err)}") ## Create an alert modal here
-      			 {:noreply, socket}
+      {:error, err} when is_binary(err) ->
+        		 Logger.error("Something went wrong #{inspect(err)}") ## Create an alert modal here
+      			 {:noreply, assign(socket, alert_content: err)}
+
+      err when is_binary(err) ->
+        		 Logger.error("Something went wrong #{inspect(err)}") ## Create an alert modal here
+      			 {:noreply, assign(socket, alert_content: err)}
+
+      err ->
+        		 Logger.error("Something went wrong #{inspect(err)}") ## Create an alert modal here
+      			 {:noreply, assign(socket, alert_content: "Something went wrong")}
       	end
   end
 
@@ -107,6 +116,22 @@ defmodule CxNewWeb.AdminLive do
 
   	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2/dist/tailwind.min.css" rel="stylesheet" type="text/css" />
  		<link href="https://cdn.jsdelivr.net/npm/daisyui@1.19.0/dist/full.css" rel="stylesheet" type="text/css" />
+
+
+
+    <%= if @alert_content do %>
+    <div class="alert alert-error">
+      <div class="flex-1">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-6 h-6 mx-2 stroke-current">    
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>                      
+        </svg> 
+        <label><%= @alert_content %></label>
+      </div>
+    </div>
+
+    <% end %>
+
+
 
  		<%= view_event(%{event: @event, event_metadata: @event_metadata}) %>
 
