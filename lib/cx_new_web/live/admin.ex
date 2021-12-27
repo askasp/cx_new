@@ -118,7 +118,14 @@ defmodule CxNewWeb.AdminLive do
  		<link href="https://cdn.jsdelivr.net/npm/daisyui@1.19.0/dist/full.css" rel="stylesheet" type="text/css" />
 
 
-
+<div class="shadow bg-base-200 drawer drawer-mobile h-full min-h-screen w-full min-w-screen" >
+  <input id="my-drawer-2" type="checkbox" class="drawer-toggle"> 
+  <div class="flex flex-col drawer-content">
+  <div class="md:hidden">
+    <label for="my-drawer-2" class="mb-4 btn btn-primary drawer-button lg:hidden">open menu</label>
+    </div>
+    <div class="hidden lg:block bg-base-200">
+        <div class="md:p-8" >
     <%= if @alert_content do %>
     <div class="alert alert-error">
       <div class="flex-1">
@@ -251,6 +258,47 @@ defmodule CxNewWeb.AdminLive do
   </div>
 </div>
 </div>
+
+    <div class="text-xs text-center lg:hidden">Menu can be toggled on mobile size.
+      <br>Resize the browser to see fixed sidebar on desktop size
+    </div>
+  </div> 
+  <div class="drawer-side">
+    <label for="my-drawer-2" class="drawer-overlay"></label> 
+    <ul class="menu p-4 overflow-y-auto w-80 bg-base-100 text-base-content">
+				<li> <%= live_patch "Admin", to: "/cx/admin" %> </li>
+      <li>
+				<%= live_redirect "Flows", to: "/cx/flows" %>
+        <ul class="list-disc my-0 mx-0">
+          <%= for flow <- @flows do %>
+				    <li> <%= live_patch Helpers.module_to_string(flow), to: "/cx/flows/#{Helpers.module_to_string(flow) |> String.downcase()}" %> </li>
+          <%end %>
+
+        </ul>
+      </li>
+
+
+
+
+
+    </ul>
+
+
+
+
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
     """
   end
   defp tail([_ | tail]), do: tail
