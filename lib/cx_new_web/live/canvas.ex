@@ -179,6 +179,7 @@ defmodule CxNewWeb.CanvasLive do
     	</div>
     </div>
 
+
     <div class="text-xs text-center lg:hidden">Menu can be toggled on mobile size.
       <br>Resize the browser to see fixed sidebar on desktop size
     </div>

@@ -117,7 +117,6 @@ defmodule CxNewWeb.AdminLive do
   	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2/dist/tailwind.min.css" rel="stylesheet" type="text/css" />
  		<link href="https://cdn.jsdelivr.net/npm/daisyui@1.19.0/dist/full.css" rel="stylesheet" type="text/css" />
 
-
 <div class="shadow bg-base-200 drawer drawer-mobile h-full min-h-screen w-full min-w-screen" >
   <input id="my-drawer-2" type="checkbox" class="drawer-toggle"> 
   <div class="flex flex-col drawer-content">
@@ -259,6 +258,11 @@ defmodule CxNewWeb.AdminLive do
 </div>
 </div>
 
+
+    	</div>
+    </div>
+
+ 
     <div class="text-xs text-center lg:hidden">Menu can be toggled on mobile size.
       <br>Resize the browser to see fixed sidebar on desktop size
     </div>
@@ -274,7 +278,14 @@ defmodule CxNewWeb.AdminLive do
 				    <li> <%= live_patch Helpers.module_to_string(flow), to: "/cx/flows/#{Helpers.module_to_string(flow) |> String.downcase()}" %> </li>
           <%end %>
 
+        <li phx-click="toggle_add_flow_modal" class="p-3 rounded-md hover:bg-base-300 rounded">
+          <div phx-click="toggle_add_flow_modal"  class="flex flex-auto gap-4">
+            <button phx-click="toggle_add_flow_modal" class="btn btn-circle btn-primary btn-sm"> + </button>
+            <a> Add flow </a>
+ 					</div>
+        </li>
         </ul>
+
       </li>
 
 
@@ -288,7 +299,6 @@ defmodule CxNewWeb.AdminLive do
 
   </div>
 </div>
-
 
 
 
