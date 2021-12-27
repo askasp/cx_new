@@ -161,7 +161,7 @@ defmodule CxNewWeb.AdminLive do
                     <label class="label">
                       <span class="label-text"> <%= key %> </span>
                     </label> 
-                    <input type="textarea" name={key}  class="input input-bordered">
+                    <textarea  name={key}  class="textarea h-24 textarea-bordered"> </textarea>
                   <% end %>
                 </div>
 
