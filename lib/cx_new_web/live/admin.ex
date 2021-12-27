@@ -155,13 +155,13 @@ defmodule CxNewWeb.AdminLive do
                   </div>
                 </div>
                 <% end %>
-              <form phx-submit="dispatch" >
+              <form phx-submit="dispatch" autocomplete="off" >
                 <div class="form-control">
                   <%= for key <- Map.keys(Map.from_struct(@command)) do %>
                     <label class="label">
                       <span class="label-text"> <%= key %> </span>
                     </label> 
-                    <input type="text" autocomplete="fale" name={key}  class="input input-bordered"/>
+                    <input type="text" autocomplete="false" name={key}  class="input input-bordered"/>
                   <% end %>
                 </div>
 
