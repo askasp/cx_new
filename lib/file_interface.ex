@@ -155,7 +155,7 @@ defmodule CxNew.FileInterface do
     case File.read("lib/cx_scaffold/read_models/#{rm_name}.ex") do
       {:ok, content} ->
         lines = String.split(content, "\n", trim: true)
-        new_lines = List.insert_at(lines, -5, handler)
+        new_lines = List.insert_at(lines, -4, handler)
         File.write("lib/cx_scaffold/read_models/#{rm_name}.ex", Enum.join(new_lines, "\n"))
 
       {:error, _} ->
@@ -164,6 +164,11 @@ defmodule CxNew.FileInterface do
         defmodule #{Helpers.app()}.ReadModel.#{String.capitalize(rm_name)} do
           use ReadModel
           #{handler}
+
+
+
+
+
 
 					# catch all
           def handle_event(_), do: :ok
