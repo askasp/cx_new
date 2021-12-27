@@ -25,7 +25,7 @@ defmodule CxNewWeb.AdminLive do
       |> Enum.filter(&(&1 |> Module.split() |> Enum.take(2) == [CxNew.Helpers.app(), "ReadModel"]))
 
     {:ok,
-     assign(socket, command: nil, streams: streams, checked: nil, events: [], commands: commands, modal_open: false, read_models: read_models, read_model: nil, read_model_data: nil, event: nil,  event_metadata: nil, alert_content: nil)}
+     assign(socket, flows: CxNew.FileInterface.get_flows(), command: nil, streams: streams, checked: nil, events: [], commands: commands, modal_open: false, read_models: read_models, read_model: nil, read_model_data: nil, event: nil,  event_metadata: nil, alert_content: nil)}
   end
 
 
