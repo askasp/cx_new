@@ -24,7 +24,7 @@ defmodule Aggregate do
       end
 
       def handle_cast(:finish_init, {stream_id, nil, 0}) do
-        events = []
+    		{:ok, events} = Spear.read_stream(CxNew.EventStoreDbClient, stream_id, max_count: 99999)
         state = Enum.reduce(events, nil, fn event, state -> apply_event(state, event) end)
         {:noreply, {stream_id, state, length(events)}}
       end
