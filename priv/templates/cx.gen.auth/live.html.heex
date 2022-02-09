@@ -1,0 +1,67 @@
+<main >
+<div class="shadow bg-base-200 drawer drawer-mobile min-h-screen">
+  <input id="my-drawer-2" type="checkbox" class="drawer-toggle"> 
+  <div class="flex flex-col drawer-content">
+    <label for="my-drawer-2" class="mb-4 btn btn-ghost absolute top-2 right-2 drawer-button lg:hidden">
+
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+      </svg>
+
+      </label>
+    <div class="hidden lg:block">
+    <%%= @inner_content %>
+    </div> 
+    <div class="text-xs text-center lg:hidden">
+    <%%= @inner_content %>
+    </div>
+
+  </div> 
+  <div class="drawer-side">
+    <label for="my-drawer-2" class="drawer-overlay"></label>
+
+
+<ul class="menu p-3 border bg-base-100 rounded-box">
+    <label for="my-drawer-2" class="mb-4 btn btn-ghost absolute right-2 top-2 lg:hidden">
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>                       
+  </svg>    </label>
+
+  <li class="menu-title">
+    <span>
+      <%%= if @current_user do %>
+      <%%= @current_user.email %>
+      <%% end %>
+        </span>
+  </li> 
+
+
+  <li class="mt-4">
+	<%%= live_patch to: "/cx/admin" do %> 
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-5 h-5 mr-2 stroke-current">       
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>                   
+      </svg>
+				Admin panel
+<%% end %>
+  </li> 
+  <li>
+	<%%= live_patch to: "/cx/flows" do %> 
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-5 h-5 mr-2 stroke-current">          
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>                
+      </svg>
+		Flows
+<%% end %>
+  </li>
+
+  <li class="absolute bottom-0 w-4/5">
+		<%%= if @current_user  do %>
+  			<%%= link "Log out", to: Routes.auth_user_session_path(@socket, :delete), method: :delete %>
+    <%% else %>
+			<%%= link "Log in", to: Routes.auth_user_session_path(@socket, :new) %>
+			<%% end %>
+  </li> 
+</ul>
+  </div>
+</div>
+
+</main>

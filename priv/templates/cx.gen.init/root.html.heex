@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <%%= csrf_meta_tag() %>
+    <%%= live_title_tag assigns[:page_title] || "Genauthest", suffix: " · Phoenix Framework" %>
+
+    <link phx-track-static rel="stylesheet" href={Routes.static_path(@conn, "/assets/app.css")}/>
+
+		<link href="https://cdn.jsdelivr.net/npm/daisyui@1.25.4/dist/full.css" rel="stylesheet" type="text/css" />
+  	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2/dist/tailwind.min.css" rel="stylesheet" type="text/css" />
+
+    <script defer phx-track-static type="text/javascript" src={Routes.static_path(@conn, "/assets/app.js")}></script>
+    <style>
+      .container{
+      max-width: none;
+      padding: 0px;
+      position: static;
+      }
+      html{ font-size: 14px}
+    </style>
+
+  </head>
+  <body>
+    <%%= @inner_content %>
+  </body>
+</html>

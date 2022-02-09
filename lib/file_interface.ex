@@ -22,8 +22,7 @@ defmodule CxNew.FileInterface do
   def write_flow(flow_name, flow) do
     File.mkdir_p("lib/cx_scaffold/flows")
 
-    File.write(
-      "lib/cx_scaffold/flows/#{flow_name}.ex",
+    File.write("lib/cx_scaffold/flows/#{flow_name}.ex",
       """
       defmodule #{Helpers.app()}.Flow.#{Macro.camelize(flow_name)} do
       def flow do
@@ -41,10 +40,13 @@ defmodule CxNew.FileInterface do
       list
       |> Enum.filter(&(&1 |> Module.split() |> Enum.take(2) == [CxNew.Helpers.app(), "ReadModel"]))
 
+			read_model_module = case String.contains?("#{read_model}", "Elixir") do
+  			false -> "Elixir.#{read_model}" |> String.to_existing_atom()
+  			true -> "#{read_model}" |> String.to_existing_atom()
+  			end
 
-			read_model_module = "Elixir.#{read_model}" |> String.to_existing_atom()
 
-			read_models = read_models ++ [read_model_module]
+			read_models = read_models ++ [read_model_module] |> Enum.uniq
 
       IO.inspect read_models
 
@@ -127,7 +129,7 @@ defmodule CxNew.FileInterface do
 
       __ ->
         File.write("lib/cx_scaffold/command_dispatcher.ex", """
-            defprotocol CommandDispatcher do
+            defprotocol #{Helpers.app()}.CommandDispatcher do
         	def dispatch(command)
         end
         """)
@@ -262,7 +264,7 @@ defmodule CxNew.FileInterface do
           defstruct [:stream_id]
         end
 
-        defimpl CommandDispatcher, for: #{Helpers.app()}.Command.#{Macro.camelize(command_name)} do
+        defimpl #{Helpers.app()}.CommandDispatcher, for: #{Helpers.app()}.Command.#{Macro.camelize(command_name)} do
           def dispatch(command) do
             #{Helpers.app()}.Aggregate.#{Macro.camelize(aggregate)}.execute(command)
           end
@@ -361,7 +363,7 @@ defmodule CxNew.Helpers do
 
   def strip_elixir_from_module(module), do: String.split(to_string(module), "Elixir.") |> Enum.at(1)
   def strip_app_from_module(module), do: String.split(to_string(module), "#{app()}.") |> Enum.at(1)
-  def module_to_string(module), do: strip_elixir_from_module(module)  |> strip_app_from_module() |>  strip_command_event()
+  def module_to_string(module), do: strip_elixir_from_module(module)  |> strip_app_from_module() |>  strip_command_event() |> Macro.underscore
 
   def string_to_existing_module(type,string), do: String.to_existing_atom("Elixir.#{app()}.#{type}.#{Macro.camelize(string)}")
   def none_to_nil("None"), do: nil
@@ -377,9 +379,9 @@ defmodule CxNew.Helpers do
           nil = spear_event.link
           body = Jason.decode!(body, keys: :atoms)
           IO.puts "event type is"
-          IO.inspect type
+          IO.inspect Macro.camelize(type)
 
-          {("Elixir.#{CxNew.Helpers.app()}.Event." <> type)
+          {("Elixir.#{CxNew.Helpers.app()}.Event." <> Macro.camelize(type))
            |> String.to_existing_atom()
            |> struct(body), md}
         rescue

@@ -9,7 +9,6 @@ defmodule CxNewWeb.AdminLive do
 
     streams = get_streams()
 
-
     IO.inspect streams
     events = Enum.map(streams, fn stream -> stream["events"]|> Enum.map(fn event -> IO.inspect event end) end)
     IO.inspect events
@@ -93,7 +92,7 @@ defmodule CxNewWeb.AdminLive do
       end
 
     struct = struct(socket.assigns.command, atom_params)
-    case CommandDispatcher.dispatch(struct) do
+    case Module.concat([Helpers.app(),CommandDispatcher]).dispatch(struct) do
       :ok -> streams = get_streams()
       			{:noreply, assign(socket, modal_open: false, streams: streams)}
       {:error, err} when is_binary(err) ->
@@ -117,8 +116,6 @@ defmodule CxNewWeb.AdminLive do
   def render(assigns) do
     ~H"""
 
-  	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2/dist/tailwind.min.css" rel="stylesheet" type="text/css" />
- 		<link href="https://cdn.jsdelivr.net/npm/daisyui@1.19.0/dist/full.css" rel="stylesheet" type="text/css" />
 
 <div class="shadow bg-base-200 drawer drawer-mobile h-full min-h-screen w-full min-w-screen" >
   <input id="my-drawer-2" type="checkbox" class="drawer-toggle"> 
@@ -139,8 +136,6 @@ defmodule CxNewWeb.AdminLive do
     </div>
 
     <% end %>
-
-
 
  		<%= view_event(%{event: @event, event_metadata: @event_metadata}) %>
 
@@ -320,7 +315,7 @@ defmodule CxNewWeb.AdminLive do
   end
 
   defp get_stream_aggregate(stream_name) do
-    String.split(stream_name, ".") |> Enum.at(-1) |> String.split(":") |> Enum.at(0)
+   stream_name |> String.split(":") |> Enum.at(0) |> Macro.camelize()
   end
 
   def view_event(assigns) do
@@ -353,6 +348,8 @@ defmodule CxNewWeb.AdminLive do
       |> Enum.to_list()
       |> Enum.map(fn x ->
         IO.inspect x.metadata.stream_name
+        IO.puts "HERE IT COMES"
+        IO.inspect x
         %{"stream_id" => get_stream_id(x.metadata.stream_name),
         	"aggregate" => get_stream_aggregate(x.metadata.stream_name),
         	"events" =>  []}

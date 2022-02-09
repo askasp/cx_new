@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <%= csrf_meta_tag() %>
+    <%= live_title_tag assigns[:page_title] || "CxNew", suffix: " · Phoenix Framework" %>
+    <link phx-track-static rel="stylesheet" href={Routes.static_path(@conn, "/assets/app.css")}/>
+
+    <link rel="stylesheet" href="/assets/domarrow.css">
+
+    <script defer phx-track-static type="text/javascript" src={Routes.static_path(@conn, "/assets/app.js")}></script>
+    <script type="text/javascript" src={Routes.static_path(@conn, "/assets/domarrow.js")}></script>
+
+ 		 <script src="https://cdn.tailwindcss.com"></script>
+ 		<link href="https://cdn.jsdelivr.net/npm/daisyui@1.19.0/dist/full.css" rel="stylesheet" type="text/css" />
+  	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2/dist/tailwind.min.css" rel="stylesheet" type="text/css" />
+
+  </head>
+  <body>
+    <header>
+
+
+<div class="navbar mb-2 shadow-lg bg-neutral text-neutral-content ">
+  <div class="flex-none">
+    <button class="btn btn-square btn-ghost">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-6 h-6 stroke-current">           
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>               
+      </svg>
+    </button>
+  </div> 
+  <div class="flex-1 px-2 mx-2">
+    <span class="text-lg font-bold">
+            Cx Canvas
+          </span>
+  </div> 
+  <div class="flex-none">
+    <button class="btn btn-square btn-ghost">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-6 h-6 stroke-current">      
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>                    
+      </svg>
+    </button>
+  </div>
+</div>
+
+
+    </header>
+    <%= @inner_content %>
+  </body>
+</html>

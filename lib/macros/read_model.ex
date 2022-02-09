@@ -54,7 +54,7 @@ defmodule ReadModel do
                 nil
 
               [{_id, number}] ->
-                :ets.insert(__MODULE__, "bookmark:" <> stream_name, number)
+                :ets.insert(__MODULE__, {"bookmark:" <> stream_name, number})
                 number
             end
         end
@@ -64,6 +64,10 @@ defmodule ReadModel do
 
       def set(id, data, stream) do
         :ets.insert(__MODULE__, {id, data})
+      end
+
+      def select(fun) do
+        :ets.select(__MODULE__, fun)
       end
 
 
@@ -83,6 +87,8 @@ defmodule ReadModel do
           )
 
       def handle_info(%Spear.Event{} = event, _state) do
+        IO.puts "event is"
+        IO.inspect(event)
         get_bookmark(event.metadata.stream_name)
         |> case do
           nil when event.metadata.stream_revision == 0 -> 0

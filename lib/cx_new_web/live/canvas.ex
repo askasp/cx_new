@@ -20,7 +20,7 @@ defmodule CxNewWeb.CanvasLive do
 
   def handle_params(%{"flow" => flow_filename}, _uri, socket) do
     IO.inspect(flow_filename)
-    flow_module = Helpers.string_to_existing_module("Flow", flow_filename)
+    flow_module = Helpers.string_to_existing_module("Flow", Macro.camelize(flow_filename))
     IO.inspect(flow_module)
     {:noreply, assign(socket, flow: flow_module)}
   end
@@ -28,7 +28,7 @@ defmodule CxNewWeb.CanvasLive do
   def handle_params(_params, _uri, socket), do: {:noreply, socket}
 
   def handle_event("set_flow", %{"flow" => flow}, socket) do
-    {:noreply, push_patch(socket, to: "/cx/flows/#{String.downcase(flow)}")}
+    {:noreply, push_patch(socket, to: "/cx/flows/#{Macro.camelize(flow)}")}
   end
 
   def handle_event("toggle_add_flow_modal", %{}, socket) do
@@ -127,9 +127,6 @@ defmodule CxNewWeb.CanvasLive do
   def render(assigns) do
     ~H"""
 
-  	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2/dist/tailwind.min.css" rel="stylesheet" type="text/css" />
- 		<link href="https://cdn.jsdelivr.net/npm/daisyui@1.19.0/dist/full.css" rel="stylesheet" type="text/css" />
-
 <div class="shadow bg-base-200 drawer drawer-mobile h-full min-h-screen w-full min-w-screen" >
   <input id="my-drawer-2" type="checkbox" class="drawer-toggle"> 
   <div class="flex flex-col drawer-content">
@@ -202,23 +199,10 @@ defmodule CxNewWeb.CanvasLive do
  					</div>
         </li>
         </ul>
-
       </li>
-
-
-
-
-
     </ul>
-
-
-
-
   </div>
 </div>
-
-
-
     """
   end
 
