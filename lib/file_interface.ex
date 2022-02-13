@@ -168,7 +168,7 @@ defmodule CxNew.FileInterface do
     case File.read("lib/cx_scaffold/read_models/#{rm_name}.ex") do
       {:ok, content} ->
         lines = String.split(content, "\n", trim: true)
-        new_lines = List.insert_at(lines, -4, handler)
+        new_lines = List.insert_at(lines, -3, handler)
         File.write("lib/cx_scaffold/read_models/#{rm_name}.ex", Enum.join(new_lines, "\n"))
 
       {:error, _} ->
@@ -178,6 +178,7 @@ defmodule CxNew.FileInterface do
         defmodule #{Helpers.app()}.ReadModel.#{Macro.camelize(rm_name)} do
           use ReadModel
           #{handler}
+
 
 
           def handle_event({_, metadata}), do: update_bookmark(metadata)
@@ -342,10 +343,12 @@ defmodule CxNew.FileInterface do
             "aggregate" => String.to_existing_atom("Elixir.#{Helpers.app()}.Aggregate.#{Macro.camelize(aggregate)}")
           }
         ]
-
     write_flow(Helpers.flow_name_from_flow(flow), new_flow)
     recompile()
   end
+
+
+
 end
 
 defmodule CxNew.Helpers do
@@ -364,7 +367,9 @@ defmodule CxNew.Helpers do
   end
 
   def strip_elixir_from_module(module), do: String.split(to_string(module), "Elixir.") |> Enum.at(1)
-  def strip_app_from_module(module), do: String.split(to_string(module), "#{app()}.") |> Enum.at(1)
+  def strip_app_from_module(module), do:
+  		String.split(to_string(module), "#{app()}.")
+  		|> Enum.at(1)
 
   def module_to_string(module),
     do:
