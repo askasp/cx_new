@@ -378,8 +378,6 @@ defmodule CxNew.Helpers do
   def app(), do: Application.get_env(:cx_new, :app) |> strip_elixir_from_module()
   def erlang_app(), do: Application.get_env(:cx_new, :erlang_app)
 
-  # def erlang_app(), do: Mix.Phoenix.context_app()
-  # def app(), do: Mix.Phoenix.base()
 
   def map_spear_event_to_domain_event(%Spear.Event{body: body, type: type, metadata: md} = spear_event) do
     try do
