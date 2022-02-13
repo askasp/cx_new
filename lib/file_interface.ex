@@ -154,13 +154,13 @@ defmodule CxNew.FileInterface do
           [component] = Enum.filter(flow.flow(), fn component -> component["gui_id"] == gui_id end)
 
           """
+
           def handle_event({%#{Helpers.strip_elixir_from_module(component["module"])}{stream_id: stream_id} = event, metadata}) do
            # get state
            # |> update state
            # |>persist state
            :ok
           end
-
 
           """
       end
