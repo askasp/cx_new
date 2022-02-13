@@ -367,7 +367,11 @@ defmodule CxNew.Helpers do
   def strip_app_from_module(module), do: String.split(to_string(module), "#{app()}.") |> Enum.at(1)
 
   def module_to_string(module),
-    do: strip_elixir_from_module(module) |> strip_app_from_module() |> strip_command_event() |> Macro.underscore()
+    do:
+    strip_elixir_from_module(module)
+    |> strip_app_from_module()
+    |> strip_command_event()
+    |> Macro.underscore()
 
   def string_to_existing_module(type, string),
     do: String.to_existing_atom("Elixir.#{app()}.#{type}.#{Macro.camelize(string)}")
