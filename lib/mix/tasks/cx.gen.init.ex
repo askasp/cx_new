@@ -1,4 +1,3 @@
-
 defmodule Mix.Tasks.Cx.Gen.Init do
   @shortdoc "Generates authentication logic for a resource"
 
@@ -16,13 +15,14 @@ defmodule Mix.Tasks.Cx.Gen.Init do
       Mix.raise("mix phx.gen.auth can only be run inside an application directory")
     end
 
-    ctx_app   = Mix.Phoenix.context_app()
-    base      = Module.concat([Mix.Phoenix.context_base(ctx_app)])
+    ctx_app = Mix.Phoenix.context_app()
+    base = Module.concat([Mix.Phoenix.context_base(ctx_app)])
+
     context = %{
       base_module: base,
       web_module: web_module(),
-      context_app: ctx_app,
-      }
+      context_app: ctx_app
+    }
 
     if Keyword.get(test_opts, :validate_dependencies?, true) do
       Mix.Task.run("compile")
@@ -32,8 +32,7 @@ defmodule Mix.Tasks.Cx.Gen.Init do
     binding = [
       context: context,
       web_app_name: web_app_name(context),
-      endpoint_module: Module.concat([context.web_module, Endpoint]),
-
+      endpoint_module: Module.concat([context.web_module, Endpoint])
     ]
 
     paths = generator_paths()
@@ -42,6 +41,7 @@ defmodule Mix.Tasks.Cx.Gen.Init do
 
     context
     |> copy_new_files(binding, paths)
+
     # |> inject_routes(paths, binding)
     # |> print_shell_instructions()
   end
@@ -54,6 +54,7 @@ defmodule Mix.Tasks.Cx.Gen.Init do
 
   defp web_module do
     base = Mix.Phoenix.base()
+
     cond do
       Mix.Phoenix.context_app() != Mix.Phoenix.otp_app() ->
         Module.concat([base])
@@ -65,7 +66,6 @@ defmodule Mix.Tasks.Cx.Gen.Init do
         Module.concat(["#{base}Web"])
     end
   end
-
 
   defp validate_required_dependencies! do
     if generated_with_no_html?() do
@@ -90,21 +90,22 @@ defmodule Mix.Tasks.Cx.Gen.Init do
     |> Mix.Phoenix.prompt_for_conflicts()
   end
 
-  defp files_to_be_generated(%{context_app: context_app} ) do
+  defp files_to_be_generated(%{context_app: context_app}) do
     web_prefix = Mix.Phoenix.web_path(context_app)
+
     [
       {:eex, "root.html.heex", Path.join([web_prefix, "templates", "layout", "root.html.heex"])},
       {:eex, "live.html.heex", Path.join([web_prefix, "templates", "layout", "live.html.heex"])},
       {:eex, "router.ex", Path.join([web_prefix, "router.ex"])},
       {:eex, "page_live.ex", Path.join([web_prefix, "live", "page", "page_live.ex"])},
-      {:eex, "command_dispatcher.ex", Path.join(["lib/cx_scaffold",  "command_dispatcher.ex"])},
-      {:eex, "read_model_supervisor.ex", Path.join(["lib/cx_scaffold",  "read_model_supervisor.ex"])},
+      {:eex, "command_dispatcher.ex", Path.join(["lib/cx_scaffold", "command_dispatcher.ex"])},
+      {:eex, "read_model_supervisor.ex", Path.join(["lib/cx_scaffold", "read_model_supervisor.ex"])}
     ]
   end
 
   defp copy_new_files(context, binding, paths) do
     files = files_to_be_generated(context)
-    IO.inspect paths
+    IO.inspect(paths)
     Mix.Phoenix.copy_from(paths, "priv/templates/cx.gen.init", binding, files)
     context
   end
@@ -116,10 +117,9 @@ defmodule Mix.Tasks.Cx.Gen.Init do
     paths
     |> Mix.Phoenix.eval_from("priv/templates/cx.gen.init/routes.ex", binding)
     |> inject_before_final_end(file_path)
+
     context
   end
-
-
 
   defp print_shell_instructions(context) do
     Mix.shell().info("""
@@ -138,7 +138,6 @@ defmodule Mix.Tasks.Cx.Gen.Init do
 
     context
   end
-
 
   # The paths to look for template files for generators.
   #
@@ -200,6 +199,7 @@ defmodule Mix.Tasks.Cx.Gen.Init do
 
   defp indent_spaces(string, number_of_spaces) when is_binary(string) and is_integer(number_of_spaces) do
     indent = String.duplicate(" ", number_of_spaces)
+
     string
     |> String.split("\n")
     |> Enum.map(&(indent <> &1))

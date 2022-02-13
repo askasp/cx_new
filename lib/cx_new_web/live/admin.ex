@@ -9,36 +9,48 @@ defmodule CxNewWeb.AdminLive do
 
     streams = get_streams()
 
-    IO.inspect streams
-    events = Enum.map(streams, fn stream -> stream["events"]|> Enum.map(fn event -> IO.inspect event end) end)
-    IO.inspect events
+    IO.inspect(streams)
+    events = Enum.map(streams, fn stream -> stream["events"] |> Enum.map(fn event -> IO.inspect(event) end) end)
+    IO.inspect(events)
 
-		{:ok, list}  = :application.get_key(CxNew.Helpers.erlang_app(), :modules)
+    {:ok, list} = :application.get_key(CxNew.Helpers.erlang_app(), :modules)
 
     commands =
       list
       |> Enum.filter(&(&1 |> Module.split() |> Enum.take(2) == [CxNew.Helpers.app(), "Command"]))
-
-
 
     read_models =
       list
       |> Enum.filter(&(&1 |> Module.split() |> Enum.take(2) == [CxNew.Helpers.app(), "ReadModel"]))
 
     {:ok,
-
-     assign(socket, flows: FileInterface.get_flows(), command: nil, streams: streams, checked: nil, events: [], commands: commands, modal_open: false, read_models: read_models, read_model: nil, read_model_data: nil, event: nil,  event_metadata: nil, alert_content: nil)}
+     assign(socket,
+       flows: FileInterface.get_flows(),
+       command: nil,
+       streams: streams,
+       checked: nil,
+       events: [],
+       commands: commands,
+       modal_open: false,
+       read_models: read_models,
+       read_model: nil,
+       read_model_data: nil,
+       event: nil,
+       event_metadata: nil,
+       alert_content: nil
+     )}
   end
 
-
   def handle_event("show_rm_data", %{"rm_id" => id, "read_model" => read_model}, socket) do
-    read_model  = CxNew.Helpers.string_to_existing_module("ReadModel",read_model)
+    read_model = CxNew.Helpers.string_to_existing_module("ReadModel", read_model)
     data = read_model.get(id)
-    IO.puts "got data"
-    IO.inspect data
+    IO.puts("got data")
+    IO.inspect(data)
+
     case socket.assigns.read_model do
       x when x == read_model ->
         {:noreply, assign(socket, read_model: nil)}
+
       x ->
         {:noreply, assign(socket, read_model: read_model, read_model_data: Map.delete(data, :__struct__))}
     end
@@ -48,39 +60,44 @@ defmodule CxNewWeb.AdminLive do
     {:noreply, assign(socket, modal_open: true, command: String.to_existing_atom(string_command))}
   end
 
-
-
-  def handle_event("load_events", %{"stream" => clicked_stream}, socket ) do
+  def handle_event("load_events", %{"stream" => clicked_stream}, socket) do
     [chosen_stream] = socket.assigns.streams |> Enum.filter(fn stream -> stream["stream_id"] == clicked_stream end)
-    IO.inspect chosen_stream
+    IO.inspect(chosen_stream)
 
-    {:ok, events} = Spear.read_stream(CxNew.EventStoreDbClient, chosen_stream["aggregate"]<> ":" <>chosen_stream["stream_id"], max_count: 99999)
-    IO.puts "events are"
+    {:ok, events} =
+      Spear.read_stream(
+        CxNew.EventStoreDbClient,
+        Macro.underscore(chosen_stream["aggregate"]) <> ":" <> chosen_stream["stream_id"],
+        max_count: 99999
+      )
+
+    IO.puts("events are")
     events = Enum.map(events, fn event -> CxNew.Helpers.map_spear_event_to_domain_event(event) end)
-    IO.inspect events
+    IO.inspect(events)
     new_stream = Map.put(chosen_stream, "events", events)
-    new_streams = socket.assigns.streams |> Enum.map(fn stream ->
-      if stream["stream_id"] == clicked_stream do
-        new_stream
-      else
-      	stream
-      end
+
+    new_streams =
+      socket.assigns.streams
+      |> Enum.map(fn stream ->
+        if stream["stream_id"] == clicked_stream do
+          new_stream
+        else
+          stream
+        end
       end)
 
     {:noreply, assign(socket, streams: new_streams)}
   end
 
-
-  def handle_event("set_event", %{"stream" => clicked_stream, "revision" => revision}, socket ) do
+  def handle_event("set_event", %{"stream" => clicked_stream, "revision" => revision}, socket) do
     [chosen_stream] = socket.assigns.streams |> Enum.filter(fn stream -> stream["stream_id"] == clicked_stream end)
     {event, metadata} = Enum.at(chosen_stream["events"], String.to_integer(revision))
     {:noreply, assign(socket, event: event, event_metadata: metadata)}
   end
 
-  def handle_event("nil_event", _, socket ) do
+  def handle_event("nil_event", _, socket) do
     {:noreply, assign(socket, event: nil, event_metadata: nil)}
   end
-
 
   def handle_event("dispatch", params, socket) do
     atom_params =
@@ -92,21 +109,31 @@ defmodule CxNewWeb.AdminLive do
       end
 
     struct = struct(socket.assigns.command, atom_params)
-    case Module.concat([Helpers.app(),CommandDispatcher]).dispatch(struct) do
-      :ok -> streams = get_streams()
-      			{:noreply, assign(socket, modal_open: false, streams: streams)}
+    IO.puts("-----------------------------------dispatching -----------------------------------------------")
+    IO.inspect(params)
+    IO.inspect(atom_params)
+    IO.inspect(struct)
+
+    case Module.concat([Helpers.app(), CommandDispatcher]).dispatch(struct) do
+      :ok ->
+        streams = get_streams()
+        {:noreply, assign(socket, modal_open: false, streams: streams)}
+
       {:error, err} when is_binary(err) ->
-        		 Logger.error("Something went wrong #{inspect(err)}") ## Create an alert modal here
-      			 {:noreply, assign(socket, alert_content: err)}
+        ## Create an alert modal here
+        Logger.error("Something went wrong #{inspect(err)}")
+        {:noreply, assign(socket, alert_content: err)}
 
       err when is_binary(err) ->
-        		 Logger.error("Something went wrong #{inspect(err)}") ## Create an alert modal here
-      			 {:noreply, assign(socket, alert_content: err)}
+        ## Create an alert modal here
+        Logger.error("Something went wrong #{inspect(err)}")
+        {:noreply, assign(socket, alert_content: err)}
 
       err ->
-        		 Logger.error("Something went wrong #{inspect(err)}") ## Create an alert modal here
-      			 {:noreply, assign(socket, alert_content: "Something went wrong")}
-      	end
+        ## Create an alert modal here
+        Logger.error("Something went wrong #{inspect(err)}")
+        {:noreply, assign(socket, alert_content: "Something went wrong")}
+    end
   end
 
   def handle_event("toggle_command_modal", %{}, socket) do
@@ -117,10 +144,10 @@ defmodule CxNewWeb.AdminLive do
     ~H"""
 
 
-<div class="shadow bg-base-200 drawer drawer-mobile h-full min-h-screen w-full min-w-screen" >
-  <input id="my-drawer-2" type="checkbox" class="drawer-toggle"> 
-  <div class="flex flex-col drawer-content">
-  <div class="md:hidden">
+    <div class="shadow bg-base-200 drawer drawer-mobile h-full min-h-screen w-full min-w-screen" >
+    <input id="my-drawer-2" type="checkbox" class="drawer-toggle"> 
+    <div class="flex flex-col drawer-content">
+    <div class="md:hidden">
     <label for="my-drawer-2" class="mb-4 btn btn-primary drawer-button lg:hidden">open menu</label>
     </div>
     <div class="hidden lg:block bg-base-200">
@@ -137,13 +164,13 @@ defmodule CxNewWeb.AdminLive do
 
     <% end %>
 
- 		<%= view_event(%{event: @event, event_metadata: @event_metadata}) %>
+    <%= view_event(%{event: @event, event_metadata: @event_metadata}) %>
 
     <div class="p-20 pt-5">
     	<div class="" style="max-width:none;">
        <h1 class="text-3xl font-bold"> Admin Panel</h1>
     	 	<div class="py-5" >
-   				<h3 class="text-xl mt-8 mb-1 font-bold"> Dispatch a Command</h3>
+    			<h3 class="text-xl mt-8 mb-1 font-bold"> Dispatch a Command</h3>
     			<%= if @command do %>
     				<input type="checkbox" checked={@modal_open} class="modal-toggle" >
             <div class="modal">
@@ -186,8 +213,8 @@ defmodule CxNewWeb.AdminLive do
           <% end %>
         </div>
 
-   		<h3 class="text-xl mt-8 mb-1 font-bold"> Read Models </h3>
-  		<div class="grid grid-cols-4 gap-4">
+    	<h3 class="text-xl mt-8 mb-1 font-bold"> Read Models </h3>
+    <div class="grid grid-cols-4 gap-4">
       	<%= for read_model <- @read_models do %>
         	<div class=" w-full pb-2 border rounded-box border-base-300 collapse-arrow">
             <div class=" text-left collapse-title text-xl font-medium">
@@ -220,7 +247,7 @@ defmodule CxNewWeb.AdminLive do
         <% end %>
       </div>
 
-   <h3 class="text-xl mt-8 mb-1 font-bold"> Streams </h3>
+    <h3 class="text-xl mt-8 mb-1 font-bold"> Streams </h3>
     <div class="overflow-x-auto">
       <table class="table w-full table-compact">
         <thead>
@@ -252,35 +279,35 @@ defmodule CxNewWeb.AdminLive do
         </tbody>
       </table>
     </div>
-  </div>
-</div>
-</div>
+    </div>
+    </div>
+    </div>
 
 
     	</div>
     </div>
 
- 
+
     <div class="text-xs text-center lg:hidden">Menu can be toggled on mobile size.
       <br>Resize the browser to see fixed sidebar on desktop size
     </div>
-  </div> 
-  <div class="drawer-side">
+    </div> 
+    <div class="drawer-side">
     <label for="my-drawer-2" class="drawer-overlay"></label> 
     <ul class="menu p-4 overflow-y-auto w-80 bg-base-100 text-base-content">
-				<li> <%= live_patch "Admin", to: "/cx/admin" %> </li>
+    <li> <%= live_patch "Admin", to: "/cx/admin" %> </li>
       <li>
-				<%= live_redirect "Flows", to: "/cx/flows" %>
+    <%= live_redirect "Flows", to: "/cx/flows" %>
         <ul class="list-disc my-0 mx-0">
           <%= for flow <- @flows do %>
-				    <li> <%= live_patch Helpers.module_to_string(flow), to: "/cx/flows/#{Helpers.module_to_string(flow) |> String.downcase()}" %> </li>
+        <li> <%= live_patch Helpers.module_to_string(flow), to: "/cx/flows/#{Helpers.module_to_string(flow) |> String.downcase()}" %> </li>
           <%end %>
 
         <li phx-click="toggle_add_flow_modal" class="p-3 rounded-md hover:bg-base-300 rounded">
           <div phx-click="toggle_add_flow_modal"  class="flex flex-auto gap-4">
             <button phx-click="toggle_add_flow_modal" class="btn btn-circle btn-primary btn-sm"> + </button>
             <a> Add flow </a>
- 					</div>
+    		</div>
         </li>
         </ul>
 
@@ -295,8 +322,8 @@ defmodule CxNewWeb.AdminLive do
 
 
 
-  </div>
-</div>
+    </div>
+    </div>
 
 
 
@@ -309,51 +336,55 @@ defmodule CxNewWeb.AdminLive do
 
     """
   end
+
   defp tail([_ | tail]), do: tail
+
   defp get_stream_id(stream_name) do
     String.split(stream_name, ":") |> Enum.at(-1)
   end
 
   defp get_stream_aggregate(stream_name) do
-   stream_name |> String.split(":") |> Enum.at(0) |> Macro.camelize()
+    stream_name |> String.split(":") |> Enum.at(0) |> Macro.camelize()
   end
 
   def view_event(assigns) do
     ~H"""
     <%= if @event do %>
-    				<input type="checkbox" checked={@event != nil} class="modal-toggle" >
-            <div class="modal">
-              <div class="modal-box">
-              <h3 class="text-lg font-bold mb-2"> <%= @event.__struct__ |> Module.split |> Enum.join(".") %> </h3>
-              <div>
-                  <%= for {key,value} <- (Map.from_struct(@event)) do %>
-                    <label class="label">
-                      <span class="label-text"> <%= key %>: <%= value %>  </span>
-                    </label>
-                    <% end %>
-               </div>
+    <input type="checkbox" checked={@event != nil} class="modal-toggle" >
+     <div class="modal">
+       <div class="modal-box">
+       <h3 class="text-lg font-bold mb-2"> <%= @event.__struct__ |> Module.split |> Enum.join(".") %> </h3>
+       <div>
+           <%= for {key,value} <- (Map.from_struct(@event)) do %>
+             <label class="label">
+               <span class="label-text"> <%= key %>: <%= value %>  </span>
+             </label>
+             <% end %>
+        </div>
 
-                <div class="modal-action">
-                 <button for="my-modal-2" class="btn" phx-click="nil_event" >Close</button>
+         <div class="modal-action">
+          <button for="my-modal-2" class="btn" phx-click="nil_event" >Close</button>
 
-                </div>
-            </div>
-            </div>
-            <% end %>
-           """
+         </div>
+     </div>
+     </div>
+     <% end %>
+    """
   end
 
   defp get_streams() do
-      Spear.stream!(CxNew.EventStoreDbClient, "$streams")
-      |> Enum.to_list()
-      |> Enum.map(fn x ->
-        IO.inspect x.metadata.stream_name
-        IO.puts "HERE IT COMES"
-        IO.inspect x
-        %{"stream_id" => get_stream_id(x.metadata.stream_name),
-        	"aggregate" => get_stream_aggregate(x.metadata.stream_name),
-        	"events" =>  []}
-        end)
-   end
+    Spear.stream!(CxNew.EventStoreDbClient, "$streams")
+    |> Enum.to_list()
+    |> Enum.map(fn x ->
+      IO.inspect(x.metadata.stream_name)
+      IO.puts("HERE IT COMES")
+      IO.inspect(x)
 
+      %{
+        "stream_id" => get_stream_id(x.metadata.stream_name),
+        "aggregate" => get_stream_aggregate(x.metadata.stream_name),
+        "events" => []
+      }
+    end)
+  end
 end

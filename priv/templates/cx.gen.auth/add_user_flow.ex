@@ -2,23 +2,23 @@ defmodule <%= inspect context.base_module %>.Flow.AddUserFlow do
 
   def flow() do[
           %{
-            "gui_id" => "1",
+            "gui_id" => "add_user",
             "type" => "command",
             "module" => <%= inspect context.base_module %>.Command.AddUser,
             "dispatched_by" => nil
           },
           %{
-            "gui_id" => "2",
+            "gui_id" => "user_added",
             "type" => "event",
             "module" => <%= inspect context.base_module %>.Command.UserAdded,
-            "dispatched_by" => "1",
+            "dispatched_by" => "add_user",
             "aggregate" => <%= inspect context.base_module %>.Aggregate.UserAggregate
           },
           %{
-            "gui_id" => UUID.uuid1(),
+            "gui_id" => "auth_user",
             "type" => "read_model",
             "module" => <%= inspect context.base_module %>.ReadModel.AuthUser,
-            "dispatched_by" => "2",
+            "dispatched_by" => "user_added",
           }
           ]
   end

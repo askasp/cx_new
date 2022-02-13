@@ -6,10 +6,18 @@ defmodule Aggregate do
 
       def start_link(args) do
         [stream_id: stream_id, name: name] = args
+
         cond do
-          stream_id == "" ->  {:error, "stream_id cant be empty"}
-          stream_id == nil ->  {:error, "stream_id cant be empty"}
-          true -> GenServer.start_link(__MODULE__, [CxNew.Helpers.module_to_string(__MODULE__) <> ":" <> stream_id], name: name)
+          stream_id == "" ->
+            {:error, "stream_id cant be empty"}
+
+          stream_id == nil ->
+            {:error, "stream_id cant be empty"}
+
+          true ->
+            GenServer.start_link(__MODULE__, [CxNew.Helpers.module_to_string(__MODULE__) <> ":" <> stream_id],
+              name: name
+            )
         end
       end
 
@@ -24,13 +32,19 @@ defmodule Aggregate do
       end
 
       def handle_cast(:finish_init, {stream_id, nil, 0}) do
-    		{:ok, events} = Spear.read_stream(CxNew.EventStoreDbClient, stream_id, max_count: 99999)
-    		domain_events = Enum.map(events, fn event -> {domain_event, _ } = CxNew.Helpers.map_spear_event_to_domain_event(event)
-    		domain_event
-    		end)
+        {:ok, events} = Spear.read_stream(CxNew.EventStoreDbClient, stream_id, max_count: 99999)
 
-        state = Enum.reduce(domain_events, nil, fn domain_event, state ->
-          apply_event(state, domain_event) end)
+        domain_events =
+          Enum.map(events, fn event ->
+            {domain_event, _} = CxNew.Helpers.map_spear_event_to_domain_event(event)
+            domain_event
+          end)
+
+        state =
+          Enum.reduce(domain_events, nil, fn domain_event, state ->
+            apply_event(state, domain_event)
+          end)
+
         {:noreply, {stream_id, state, length(domain_events)}}
       end
 

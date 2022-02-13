@@ -3,11 +3,10 @@ defmodule Mix.Tasks.Cx.Gen.Auth do
 
   use Mix.Task
 
-
   # alias Mix.Phoenix.{Context, Schema}
   alias Mix.Tasks.Phx.Gen
 
-	alias Mix.Cx.Gen.Injector
+  alias Mix.Cx.Gen.Injector
 
   @switches [web: :string, binary_id: :boolean, hashing_lib: :string, table: :string]
 
@@ -22,31 +21,37 @@ defmodule Mix.Tasks.Cx.Gen.Auth do
       validate_required_dependencies!()
     end
 
-    ctx_app   = Mix.Phoenix.context_app()
-    base      = Module.concat([Mix.Phoenix.context_base(ctx_app)])
+    ctx_app = Mix.Phoenix.context_app()
+    base = Module.concat([Mix.Phoenix.context_base(ctx_app)])
+
     context = %{
       base_module: base,
       module: IAMHERE,
       alias: "user",
       web_module: web_module(),
       context_app: ctx_app,
-      schema: %{singular: "user", plural: "users", web_namespace: Auth, web_path: "auth",  alias: User},
-      }
+      schema: %{singular: "user", plural: "users", web_namespace: Auth, web_path: "auth", alias: User}
+    }
 
     if Keyword.get(test_opts, :validate_dependencies?, true) do
       Mix.Task.run("compile")
       validate_required_dependencies!()
     end
 
-
     binding = [
       context: context,
-      schema: %{route_helper: "auth_user", singular: "user", plural: "users", web_namespace: Auth, web_path: "auth",  alias: User},
+      schema: %{
+        route_helper: "auth_user",
+        singular: "user",
+        plural: "users",
+        web_namespace: Auth,
+        web_path: "auth",
+        alias: User
+      },
       web_app_name: web_app_name(context),
-
       endpoint_module: Module.concat([context.web_module, Endpoint]),
       auth_module: Module.concat([context.web_module, Auth, UserAuth]),
-      router_scope: router_scope(context),
+      router_scope: router_scope(context)
     ]
 
     paths = generator_paths()
@@ -59,11 +64,10 @@ defmodule Mix.Tasks.Cx.Gen.Auth do
     |> inject_routes(paths, binding)
     |> maybe_inject_router_import(binding)
     |> maybe_inject_router_plug()
+
     # |> print_shell_instructions()
 
-
     CxNew.FileInterface.write_read_model_supervisor(Module.concat([context.base_module, ReadModel, AuthUser]))
-
   end
 
   defp web_app_name(context) do
@@ -71,7 +75,6 @@ defmodule Mix.Tasks.Cx.Gen.Auth do
     |> inspect()
     |> Phoenix.Naming.underscore()
   end
-
 
   defp validate_required_dependencies! do
     # unless Code.ensure_loaded?(Ecto.Adapters.SQL) do
@@ -100,26 +103,26 @@ defmodule Mix.Tasks.Cx.Gen.Auth do
     |> Mix.Phoenix.prompt_for_conflicts()
   end
 
-  defp files_to_be_generated(%{context_app: context_app} ) do
+  defp files_to_be_generated(%{context_app: context_app}) do
     web_prefix = Mix.Phoenix.web_path(context_app)
     event_prefix = "lib/cx_scaffold/events"
     command_prefix = "lib/cx_scaffold/commands"
     aggregates_prefix = "lib/cx_scaffold/aggregates"
     flows_prefix = "lib/cx_scaffold/flows"
     web_path = "auth"
+
     [
       {:eex, "auth.ex", Path.join([web_prefix, "controllers", web_path, "user_auth.ex"])},
-
       {:eex, "live.html.heex", Path.join([web_prefix, "templates", "layout", "live.html.heex"])},
       {:eex, "session_view.ex", Path.join([web_prefix, "views", web_path, "user_session_view.ex"])},
       {:eex, "session_controller.ex", Path.join([web_prefix, "controllers", web_path, "user_session_controller.ex"])},
       {:eex, "session_new.html.eex", Path.join([web_prefix, "templates", web_path, "user_session", "new.html.eex"])},
-      {:eex, "add_user.ex", Path.join([command_prefix,  "add_user.ex"])},
-      {:eex, "user_read_model.ex", Path.join(["lib/cx_scaffold/read-models",  "user_read_model.ex"])},
-      {:eex, "user_added.ex", Path.join([event_prefix,  "user_added.ex"])},
-      {:eex, "useraggregate.ex", Path.join([aggregates_prefix,  "useraggregate.ex"])},
-      {:eex, "oauth_controller.ex", Path.join([web_prefix,  "controllers", web_path, "oauth_controller.ex"])},
-      {:eex, "add_user_flow.ex", Path.join([flows_prefix,  "add_user_flow.ex"])},
+      {:eex, "add_user.ex", Path.join([command_prefix, "add_user.ex"])},
+      {:eex, "user_read_model.ex", Path.join(["lib/cx_scaffold/read-models", "user_read_model.ex"])},
+      {:eex, "user_added.ex", Path.join([event_prefix, "user_added.ex"])},
+      {:eex, "useraggregate.ex", Path.join([aggregates_prefix, "useraggregate.ex"])},
+      {:eex, "oauth_controller.ex", Path.join([web_prefix, "controllers", web_path, "oauth_controller.ex"])},
+      {:eex, "add_user_flow.ex", Path.join([flows_prefix, "add_user_flow.ex"])}
     ]
   end
 
@@ -191,7 +194,8 @@ defmodule Mix.Tasks.Cx.Gen.Auth do
     """
 
     with {:ok, file} <- read_file(file_path),
-         {:ok, new_file} <- Injector.inject_unless_contains(file, inject, &String.replace(&1, use_line, "#{use_line}\n\n  #{&2}")) do
+         {:ok, new_file} <-
+           Injector.inject_unless_contains(file, inject, &String.replace(&1, use_line, "#{use_line}\n\n  #{&2}")) do
       print_injecting(file_path, " - imports")
       File.write!(file_path, new_file)
     else
@@ -239,7 +243,6 @@ defmodule Mix.Tasks.Cx.Gen.Auth do
     context
   end
 
-
   # defp print_shell_instructions(context) do
   #   Mix.shell().info("""
 
@@ -267,7 +270,6 @@ defmodule Mix.Tasks.Cx.Gen.Auth do
       ~s|"/", #{inspect(context.web_module)}|
     end
   end
-
 
   # The paths to look for template files for generators.
   #
@@ -422,8 +424,9 @@ defmodule Mix.Tasks.Cx.Gen.Auth do
   defp test_case_options(Ecto.Adapters.Postgres), do: ", async: true"
   defp test_case_options(adapter) when is_atom(adapter), do: ""
 
-  defp web_module do
+  def web_module do
     base = Mix.Phoenix.base()
+
     cond do
       Mix.Phoenix.context_app() != Mix.Phoenix.otp_app() ->
         Module.concat([base])
@@ -435,7 +438,4 @@ defmodule Mix.Tasks.Cx.Gen.Auth do
         Module.concat(["#{base}Web"])
     end
   end
-
-
-
 end

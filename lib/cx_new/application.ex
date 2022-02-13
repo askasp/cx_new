@@ -16,7 +16,7 @@ defmodule CxNew.Application do
       # Start the Endpoint (http/https)
       CxNewWeb.Endpoint,
       {DynamicSupervisor, strategy: :one_for_one, name: AggregateSupervisor},
-      {Registry, keys: :unique, name: AggregateRegistry},
+      {Registry, keys: :unique, name: AggregateRegistry}
 
       # Start a worker by calling: CxNew.Worker.start_link(arg)
       # {CxNew.Worker, arg}

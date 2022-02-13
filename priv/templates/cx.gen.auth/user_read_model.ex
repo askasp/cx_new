@@ -11,5 +11,8 @@ defmodule <%= inspect context.base_module %>.ReadModel.AuthUser do
 		|> select()
   end
 
+  def handle_event({_, metadata}), do: update_bookmark(metadata)
+
+
 
 end

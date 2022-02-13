@@ -10,7 +10,8 @@ defmodule Mix.Cx.Gen.Injector do
   @doc """
   Injects a dependency into the contents of mix.exs
   """
-  @spec mix_dependency_inject(String.t(), String.t()) :: {:ok, String.t()} | :already_injected | {:error, :unable_to_inject}
+  @spec mix_dependency_inject(String.t(), String.t()) ::
+          {:ok, String.t()} | :already_injected | {:error, :unable_to_inject}
   def mix_dependency_inject(mixfile, dependency) do
     with :ok <- ensure_not_already_injected(mixfile, dependency),
          {:ok, new_mixfile} <- do_mix_dependency_inject(mixfile, dependency) do
@@ -34,8 +35,6 @@ defmodule Mix.Cx.Gen.Injector do
         {:error, :unable_to_inject}
     end
   end
-
-
 
   @router_plug_anchor_line "plug :put_secure_browser_headers"
 
@@ -85,7 +84,8 @@ defmodule Mix.Cx.Gen.Injector do
   @doc """
   Injects a menu in the application layout
   """
-  @spec app_layout_menu_inject(String.t(), schema) :: {:ok, String.t()} | :already_injected | {:error, :unable_to_inject}
+  @spec app_layout_menu_inject(String.t(), schema) ::
+          {:ok, String.t()} | :already_injected | {:error, :unable_to_inject}
   def app_layout_menu_inject(file, %Schema{} = schema) when is_binary(file) do
     with {:error, :unable_to_inject} <- app_layout_menu_inject_at_end_of_nav_tag(file, schema),
          {:error, :unable_to_inject} <- app_layout_menu_inject_after_opening_body_tag(file, schema) do
@@ -151,7 +151,8 @@ defmodule Mix.Cx.Gen.Injector do
   """
   @spec inject_unless_contains(String.t(), String.t(), (String.t(), String.t() -> String.t())) ::
           {:ok, String.t()} | :already_injected | {:error, :unable_to_inject}
-  def inject_unless_contains(code, code_to_inject, inject_fn) when is_binary(code) and is_binary(code_to_inject) and is_function(inject_fn, 2) do
+  def inject_unless_contains(code, code_to_inject, inject_fn)
+      when is_binary(code) and is_binary(code_to_inject) and is_function(inject_fn, 2) do
     with :ok <- ensure_not_already_injected(code, code_to_inject) do
       new_code = inject_fn.(code, code_to_inject)
 
