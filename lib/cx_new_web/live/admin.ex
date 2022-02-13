@@ -5,13 +5,8 @@ defmodule CxNewWeb.AdminLive do
   require Logger
 
   def mount(_params, _, socket) do
-    IEx.Helpers.recompile()
 
     streams = get_streams()
-
-    IO.inspect(streams)
-    events = Enum.map(streams, fn stream -> stream["events"] |> Enum.map(fn event -> IO.inspect(event) end) end)
-    IO.inspect(events)
 
     {:ok, list} = :application.get_key(CxNew.Helpers.erlang_app(), :modules)
 
