@@ -41,6 +41,10 @@ defmodule CxNewWeb.AdminLive do
      )}
   end
 
+  def handle_params(_,_, socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("show_rm_data", %{"rm_id" => id, "read_model" => read_model}, socket) do
     read_model = CxNew.Helpers.string_to_existing_module("ReadModel", read_model)
     data = read_model.get(id)
