@@ -1,11 +1,11 @@
 
 defmodule <%= inspect context.web_module %>.PageLive do
-  use GenauthestWeb, :live_view
+  use <%= inspect context.web_module %>, :live_view
   def mount(_, session, socket) do
 		user = Map.get(session, "current_user_id")
 		|> case do
   		nil -> nil
-		  id  -> Genauthest.ReadModel.AuthUser.get(id)
+		  id  -> <%= inspect context.module %>.ReadModel.AuthUser.get(id)
 		end
     {:ok, assign(socket, current_user: user)}
   end
