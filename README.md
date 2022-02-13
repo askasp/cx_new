@@ -1,3 +1,11 @@
+
+#TODO
+* Inject Readmodelsupervisor on first load
+* Separate between generator helpers and runtime helpers
+* Separate between generator and runtime stuff in general. 
+
+
+
 # CxNew
 
 To start your Phoenix server:
