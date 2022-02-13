@@ -168,7 +168,7 @@ defmodule CxNew.FileInterface do
     case File.read("lib/cx_scaffold/read_models/#{rm_name}.ex") do
       {:ok, content} ->
         lines = String.split(content, "\n", trim: true)
-        new_lines = List.insert_at(lines, -3, handler)
+        new_lines = List.insert_at(lines, -2, handler)
         File.write("lib/cx_scaffold/read_models/#{rm_name}.ex", Enum.join(new_lines, "\n"))
 
       {:error, _} ->
