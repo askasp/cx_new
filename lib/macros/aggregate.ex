@@ -57,7 +57,7 @@ defmodule Aggregate do
              _ <- IO.inspect(event),
              spear_event <-
                Spear.Event.new(CxNew.Helpers.module_to_string(event.__struct__), Jason.encode!(event)),
-             :ok <- Spear.append([spear_event], CxNew.EventStoreDbClient, stream_id, expect: event_nr) do
+             :ok <- Spear.append([spear_event], CxNew.EventStoreDbClient, stream_id, expect: event_nr - 1) do
           new_state = apply_event(state, event)
           {:reply, :ok, {stream_id, new_state, event_nr + 1}}
         else

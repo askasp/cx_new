@@ -44,7 +44,6 @@ defmodule CxNew.MixProject do
       {:telemetry_metrics, "~> 0.6"},
       {:elixir_uuid, "~> 1.2"},
       {:telemetry_poller, "~> 1.0"},
-      {:mnesiac, "~> 0.3"},
       {:gettext, "~> 0.18"},
       {:jason, "~> 1.2"},
       {:spear, "~> 0.11.0"},

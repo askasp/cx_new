@@ -146,6 +146,7 @@ defmodule CxNewWeb.AdminLive do
     <div class="shadow bg-base-200 drawer drawer-mobile h-full min-h-screen w-full min-w-screen" >
     <input id="my-drawer-2" type="checkbox" class="drawer-toggle"> 
     <div class="flex flex-col drawer-content">
+
     <div class="md:hidden">
     <label for="my-drawer-2" class="mb-4 btn btn-primary drawer-button lg:hidden">open menu</label>
     </div>
@@ -164,7 +165,6 @@ defmodule CxNewWeb.AdminLive do
     <% end %>
 
     <%= view_event(%{event: @event, event_metadata: @event_metadata}) %>
-
     <div class="p-20 pt-5">
     	<div class="" style="max-width:none;">
        <h1 class="text-3xl font-bold"> Admin Panel</h1>

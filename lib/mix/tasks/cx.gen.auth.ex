@@ -118,7 +118,7 @@ defmodule Mix.Tasks.Cx.Gen.Auth do
       {:eex, "session_controller.ex", Path.join([web_prefix, "controllers", web_path, "user_session_controller.ex"])},
       {:eex, "session_new.html.eex", Path.join([web_prefix, "templates", web_path, "user_session", "new.html.eex"])},
       {:eex, "add_user.ex", Path.join([command_prefix, "add_user.ex"])},
-      {:eex, "user_read_model.ex", Path.join(["lib/cx_scaffold/read-models", "user_read_model.ex"])},
+      {:eex, "user_read_model.ex", Path.join(["lib/cx_scaffold/read_models", "user_read_model.ex"])},
       {:eex, "user_added.ex", Path.join([event_prefix, "user_added.ex"])},
       {:eex, "useraggregate.ex", Path.join([aggregates_prefix, "useraggregate.ex"])},
       {:eex, "oauth_controller.ex", Path.join([web_prefix, "controllers", web_path, "oauth_controller.ex"])},

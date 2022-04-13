@@ -69,6 +69,15 @@ defmodule CxNew.FileInterface do
     )
   end
 
+  def create_flow_json(flowname) do
+    case File.read("lib/cx_scaffold/flows/flowname.ex") do
+      {:ok, _} ->
+        {:error, "flow exists"}
+      _ ->
+        write_flow(flowname, [])
+    end
+  end
+
   def create_flow(flowname) do
     case File.read("lib/cx_scaffold/flows/flowname.ex") do
       {:ok, _} ->
@@ -81,6 +90,12 @@ defmodule CxNew.FileInterface do
     recompile()
     Helpers.string_to_existing_module("Flow", flowname)
   end
+
+	def add_liveview_to_flow_json(flow, live_view, dispatched_by \\ nil) do
+
+
+  end
+
 
   def add_liveview_to_flow(flow, liveview_name, dispatched_by \\ nil) do
     case File.read("lib/cx_scaffold/liveviews/#{liveview_name}_live.ex") do
@@ -168,7 +183,7 @@ defmodule CxNew.FileInterface do
     case File.read("lib/cx_scaffold/read_models/#{rm_name}.ex") do
       {:ok, content} ->
         lines = String.split(content, "\n", trim: true)
-        new_lines = List.insert_at(lines, -2, handler)
+        new_lines = List.insert_at(lines, 3, handler)
         File.write("lib/cx_scaffold/read_models/#{rm_name}.ex", Enum.join(new_lines, "\n"))
 
       {:error, _} ->

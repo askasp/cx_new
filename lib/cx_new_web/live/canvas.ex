@@ -1,5 +1,31 @@
+  # DeviceCreated
+  # DeviceAddedToUser
+  # SensorAddedToDevice
+  # DeviceAddedToUser
+
+  # ProjectCreated
+  # DeviceAddedToProject
+  # InputAddedToProject
+  # OutputAddedToProject
+  # MappingAddedToProject
+
+  # InputTriggered
+  # OutputTriggered
+
+
+  ## Alt CRUD
+  ## -- Devices
+  # -- Users
+  # -- Projects ( has input, mapping, output). One Process for each Project. Subscribes to Input. And All inputs broadcasts that. Cant take an input triggered
+  # -- Inputs
+  # -- Outputs
+  # -- Mapping
+  #
+
+
+
 defmodule CxNewWeb.CanvasLive do
-  alias CxNew.FileInterface
+    alias CxNew.FileInterface
   alias CxNew.Helpers
   @height_unit 100
   @width_unit 120
@@ -55,7 +81,7 @@ defmodule CxNewWeb.CanvasLive do
     {:noreply, redirect(socket, to: "/cx/flows/#{Helpers.flow_name_from_flow(socket.assigns.flow)}")}
   end
 
-  @impl true
+  @impl truej
   def handle_event(
         "add_command_and_event",
         %{
@@ -70,7 +96,7 @@ defmodule CxNewWeb.CanvasLive do
     FileInterface.add_command_to_flow(
       socket.assigns.flow,
       command_filename,
-      event_filename,
+     event_filename,
       shared_params |> String.split(" ") |> Enum.map(fn x -> String.to_atom(x) end),
       aggregate_filename,
       Helpers.none_to_nil(dispatched_by)
@@ -78,6 +104,30 @@ defmodule CxNewWeb.CanvasLive do
 
     {:noreply, redirect(socket, to: "/cx/flows/#{Helpers.flow_name_from_flow(socket.assigns.flow)}")}
   end
+
+  @impl true
+  def handle_event(
+        "add_event",
+        %{
+          "event_filename" => event_filename,
+          "shared_params" => shared_params,
+          "aggregate_filename" => aggregate_filename,
+          "dispatched_by" => dispatched_by
+        },
+        socket
+      ) do
+    FileInterface.add_command_to_flow(
+      socket.assigns.flow,
+     event_filename,
+      shared_params |> String.split(" ") |> Enum.map(fn x -> String.to_atom(x) end),
+      aggregate_filename,
+      Helpers.none_to_nil(dispatched_by)
+    )
+
+    {:noreply, redirect(socket, to: "/cx/flows/#{Helpers.flow_name_from_flow(socket.assigns.flow)}")}
+  end
+
+
 
   @impl true
   def handle_event(
@@ -129,72 +179,74 @@ defmodule CxNewWeb.CanvasLive do
     ~H"""
 
     <div class="shadow drawer drawer-mobile h-full min-h-screen w-full min-w-screen" >
-    	<input id="my-drawer-2" type="checkbox" class="drawer-toggle">
-    	<div class="flex flex-col drawer-content ">
-    		<div class="md:hidden">
-    			<label for="my-drawer-2" class="mb-4 btn btn-primary drawer-button lg:hidden">open menu</label>
-    		</div>
-    		<div class="hidden lg:block ">
-        	<div class="md:p-8" >
-        		<h1 class="text-3xl font-bold"> Generate Flows </h1>
-        	</div>
-    			<div class="py-40 w-max " >
-          	<%= if @show_add_flow_modal do %>
-            	<div class="modal modal-open">
-              	<div class="modal-box prose text-left">
-                	<h3>Add Flow</h3>
-                	<form phx-submit="create_flow" phx-change="validate_flow_name" >
-                		<h4 class="text-lg mb-2"> Name of generated module: <%= "Flow.#{Macro.camelize(@flow_name_suggestion)}" %>  </h4>
-                  	<div class="form-control">
-                    	<label class="label"><span class=
-                    		"label-text">Filename</span></label>
-                    		<input name=
-                    		"filename" type="text" placeholder="myflow" class=
-                    		"input input-bordered">
-                  	</div>
+    <input id="my-drawer-2" type="checkbox" class="drawer-toggle"> 
+    <div class="flex flex-col drawer-content">
+    <div class="md:hidden">
+    <label for="my-drawer-2" class="mb-4 btn btn-primary drawer-button lg:hidden">open menu</label>
+    </div>
+    <div class="hidden lg:block ">
+        <div class="md:p-8" >
+        <h1 class="text-3xl font-bold"> Generate Flows </h1>
+        </div>
+    	<div class="py-40" >
+            <%= if @show_add_flow_modal do %>
+            <div class="modal modal-open">
+              <div class="modal-box prose text-left">
+                <h3>Add Flow</h3>
+                <form phx-submit="create_flow" phx-change="validate_flow_name" >
+                <h4 class="text-lg mb-2"> Name of generated module: <%= "Flow.#{Macro.camelize(@flow_name_suggestion)}" %>  </h4>
+                  <div class="form-control">
+                    <label class="label"><span class=
+                    "label-text">Filename</span></label> <input name=
+                    "filename" type="text" placeholder="myflow" class=
+                    "input input-bordered">
+                  </div>
 
-                  	<div class="modal-action">
-                    	<button for="my-modal-3" type="submit" class="btn btn-primary"> Create </button>
-                    	<button phx-click="toggle_add_flow_modal" class="btn btn-active">Close</button>
-                  	</div>
-                	</form>
-              	</div>
-            	</div>
+                  <div class="modal-action">
+                    <button for="my-modal-3" type="submit" class="btn btn-primary"> Create </button>
+                    <button phx-click="toggle_add_flow_modal" class="btn btn-active">Close</button>
+                  </div>
+                </form>
+              </div>
+            </div>
             <% end %>
 
 
-    				<%= case @flow do %>
-    					<%= nil -> %>
-    					<%= _ -> %> <%= flow_page(%{flow: @flow.flow(), aggregates: get_aggregates(@flow), myheight: 100}) %>
-    				<% end %>
+    		<%= case @flow do %>
+    			<%= nil -> %>
+    	<%= _ -> %> <%= flow_page(%{flow: @flow.flow(), aggregates: get_aggregates(@flow), myheight: 100}) %>
+    		<% end %>
 
-     				<%= if @flow do %>
-        			<%= for component <- @flow.flow() do %>
-        				<%= if component["dispatched_by"] != nil  do %>
-    							<script>
-                    new LeaderLine(
-                    document.getElementById("<%= component["dispatched_by"]%>"),
-                    document.getElementById("<%= component["gui_id"] %>")
-                    );
+     <%= if @flow do %>
+        <%= for component <- @flow.flow() do %>
+        	<%= if component["dispatched_by"] != nil  do %>
+    <script>
+    new LeaderLine(
+    document.getElementById("<%= component["dispatched_by"]%>"),
+    document.getElementById("<%= component["gui_id"] %>")
+    );
 
-                  </script>
-            		<% end %>
-          		<% end %>
-    				<% end %>
-    			</div>
-    		</div>
-    	<div class="text-xs text-center lg:hidden">Menu can be toggled on mobile size.
-      	<br>Resize the browser to see fixed sidebar on desktop size
+    </script>
+            <% end %>
+          <% end %>
+    		<% end %>
     	</div>
     </div>
-  <div class="drawer-side bg-base-200">
-  	<label for="my-drawer-2" class="drawer-overlay"></label>
+
+
+    <div class="text-xs text-center lg:hidden">Menu can be toggled on mobile size.
+      <br>Resize the browser to see fixed sidebar on desktop size
+    </div>
+    </div> 
+    <div class="drawer-side">
+    <label for="my-drawer-2" class="drawer-overlay"></label> 
     <ul class="menu p-4 overflow-y-auto w-80 bg-base-300 text-base-content">
-    	<li> <%= link "Admin", to: "/cx/admin" %> </li>
-      <li> <%= link "Flows", to: "/cx/flows" %>
+    <li> <%= link "Admin", to: "/cx/admin" %> </li>
+      <li>
+    <%= link "Flows", to: "/cx/flows" %>
         <ul class="list-disc my-0 mx-0">
           <%= for flow <- @flows do %>
-        		<li> <%= link Helpers.module_to_string(flow), to: "/cx/flows/#{Helpers.module_to_string(flow) |> String.downcase()}" %> </li>
+        <li> <%= link Helpers.module_to_string(flow), to: "/cx/flows/#{Helpers.module_to_string(flow) |> String.downcase()}" %> </li>
           <%end %>
 
         <li phx-click="toggle_add_flow_modal" class="p-3 rounded-md hover:bg-base-300 rounded">
@@ -208,14 +260,12 @@ defmodule CxNewWeb.CanvasLive do
     </ul>
     </div>
     </div>
-
     """
   end
 
   def flow_page(assigns) do
     ~H"""
 
-		<div class="">
     <%= add_component_modal(%{flow: @flow}, "Add Liveview", "add_liveview", fn x -> liveview_form_custom_conent(x) end ) %>
     <%= add_component_modal(%{flow: @flow}, "Add Command &  Event", "add_command_and_event", fn x -> command_and_event_form_custom_content(x) end, "btn-info" ) %>
     <%= add_component_modal(%{flow: @flow}, "Add Read model", "add_read_model", fn x -> read_model_custom_form_content(x) end, "btn-success" ) %>
@@ -264,7 +314,6 @@ defmodule CxNewWeb.CanvasLive do
     <% end %>
     <% end %>
 
-    </div>
     </div>
     </div>
     """
